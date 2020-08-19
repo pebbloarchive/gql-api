@@ -21,7 +21,7 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
       return res.status(401).send({ error: 'Unable to login due to your account being disabled. Please check your email for more information.' });
     if(user) {
       if(bcrypt.compareSync(password, user.password)) {
-        await jwt.sign({ id: user.id, iat: 900 }, process.env.jwt_secret as string,
+        await jwt.sign({ id: user.id, permissions: user.permissions, exp: 900 }, process.env.jwt_secret as string,
         { algorithm: 'HS256' }, async (err, token) => {
           if(err) return res.status(400).json({ error: 'It seems something went wrong, please try again' });
           const account = {
@@ -29,6 +29,7 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
             username: user.username,
             email: user.email,
             avatar: user.avatar,
+            permissions: user.permissions,
             access_token: token
           }
           // @ts-ignore
@@ -117,7 +118,7 @@ router.post('/verify', async (req: Request, res: Response) => {
 router.post('/refresh', session, async (req: Request, res: Response) => {
   try {
     // @ts-ignore
-    await jwt.sign({ id: req.user.id, email: req.user.email, iat: 604800 }, process.env.jwt_secret as string, { algorithm: 'HS256' }, async (err, token) => {
+    await jwt.sign({ id: req.user.id, email: req.user.email, permissions: req.user.permissons, exp: 604800 }, process.env.jwt_secret as string, { algorithm: 'HS256' }, async (err, token) => {
       if(err) return res.status(400).json({ err: 'It seems something went wrong, please try again' });
       // @ts-ignore
       await db.tokens.insertOne({ id: req.user.id, refresh_token: token });

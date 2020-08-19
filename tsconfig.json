@@ -1,37 +1,22 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "module": "commonjs",
-    "lib": [
-      "dom",
-      "es6",
-      "es2017",
-      "esnext.asynciterable"
-    ],
-    "sourceMap": true,
-    "outDir": "./dist",
+    "target": "ESNext",
+    "module": "CommonJS",
+    "lib": ["ES2015", "ES2016", "ES2017", "ES2018", "ES2019", "ES2020", "ESNext"],
+    "strict": true,
+    "declaration": true,
+    "outDir": "build",
+    "rootDir": "./src",
+    "noImplicitAny": false,
     "moduleResolution": "node",
-    "removeComments": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "noImplicitThis": true,
-    // "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
+    "types": ["node"],
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "resolveJsonModule": true,
-    "baseUrl": "."
+    "typeRoots": ["./src/@types"]
   },
-  "exclude": [
-    "node_modules"
-  ],
-  "include": [
-    "./src/**/*.tsx",
-    "./src/**/*.ts"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
 }

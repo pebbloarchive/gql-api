@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import short from 'short-uuid';
 import isAscii from 'is-ascii-control-char';
-import { EMAIL_REGEX, PASSWORD_REGEX, SPOTIFY_URL, SPOTIFY_REDIRECT } from "../../constants";
+import { EMAIL_REGEX, PASSWORD_REGEX, SPOTIFY_URL, SPOTIFY_REDIRECT, SPOTIFY_API } from "../../constants";
 import session from '../../middleware/session';
 import querystring from 'querystring';
 import fetch from 'node-fetch';
@@ -144,46 +144,39 @@ router.get('/spotify', async (req, res) => {
 // });
 
 router.get('/spotify/callback', session, async (req, res) => {
-  let body = {
+  const body = {
     grant_type: 'authorization_code',
     code: req.query.code,
     redirect_uri: SPOTIFY_REDIRECT,
-    // client_id: process.env.spotify_client as string,
-    // client_secret: process.env.spotify_secret as string
+    // client_id: process.env.SPOTIFY_CLIENT as string,
+    // client_secret: process.env.SPOTIFY_SECRET as string
   }
 
-  // const tokens = await fetch(SPOTIFY_URL, {
-  //   method: 'POST',
-  //   headers: {
-      // 'Authorization': `Basic ${Buffer.from(`${process.env.spotify_client}:${process.env.spotify_secret}`).toString('base64')}`
-  //   },
-  //   body: encodeFormData(body as any)
-  // });
+  const spotify = await fetch(SPOTIFY_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${Buffer.from(`${process.env.SPOTIFY_CLIENT}:${process.env.SPOTIFY_SECRET}`).toString('base64')}`
+    },
+    body: JSON.stringify(body as any)
+  });
 
-  // let access = await fetch('https://api.spotify.com/v1/me', {
-  //   headers: {
-  //     'Authorization': `Bearer ${tokens.access_token}`
-  //   }
-  // });
+  const access = await fetch(SPOTIFY_API, {
+    headers: {
+      'Authorization': `Bearer ${spotify.access_token}`
+    }
+  });
 
-  const tokens = await centra(SPOTIFY_URL, 'POST')
-    .body(body, 'form')
-    .header('Authorization', `Basic ${Buffer.from(`${process.env.spotify_client}:${process.env.spotify_secret}`).toString('base64')}`)
-    .json();
+  const json = await access.json();
 
-  const access = await centra('https://api.spotify.com/v1/me')
-  .header('Authorization', `Bearer ${tokens.access_token}`)
-  .json();
-
-  if (access.error) return res.status(401).send({ error: 'It seems something went wrong' });
+  if (json.error) return res.status(401).send({ error: 'It seems something went wrong' });
 
   const spotifyData = {
-    id: access.id,
-    uri: access.uri
+    id: json.id,
+    uri: json.uri
   }
 
   // @ts-ignore
-  const connection = await db.users.findOne({ id: req.user.id }, { "connections.spotify.id": access.id });
+  const connection = await db.users.findOne({ id: req.user.id }, { "connections.spotify.id": json.id });
   // @ts-ignore
   if(!connection) await db.users.updateOne({ id: req.user.id }, { $push: { connections: { spotify: spotifyData } } });
 

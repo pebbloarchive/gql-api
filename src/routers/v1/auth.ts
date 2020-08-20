@@ -79,7 +79,9 @@ router.post('/register', async (req: Request, res: Response) => {
 
   try {
     let encryptedPass = await bcrypt.hash(password, 10);
-    const id = short.generate();
+    // const id = short.generate();
+    // @ts-ignore
+    const id = flake.generate(); 
     // @ts-ignore
     await db.users.insertOne({ id: id, username: username, email: email.toLowerCase(), avatar: '', password: encryptedPass,
                             email_code: '', email_verified: false, theme: 'light', suspended: false, suspended_time: null,
@@ -94,7 +96,7 @@ router.post('/register', async (req: Request, res: Response) => {
       email_verified: false
     });
   } catch(err) {
-    return res.status(400).send({ error: 'It seems something went wrong' });
+    return res.status(400).send({ error: 'It seems something went wrong', err: err.stack });
   }
 });
 

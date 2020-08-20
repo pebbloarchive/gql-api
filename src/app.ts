@@ -4,6 +4,7 @@ import cors from 'cors';
 import { resolve } from 'path';
 import Logger from '@pebblo/logger'
 import Database from './database';
+import { Flake } from './util';
 
 if (process.env.NODE_ENV !== 'production') {
   const { config } = require('dotenv')
@@ -30,6 +31,12 @@ const main = async () => {
   global.db = new Database(process.env.db_url);
   // @ts-ignore
   await db.connect();
+
+  // @ts-ignore
+  global.flake = new Flake({
+    nodeId: 42,
+    timeOffset: 1593561600 * 1000
+  });
 
   app.use('/1.0', v1);
 

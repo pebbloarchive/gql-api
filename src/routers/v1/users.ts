@@ -76,7 +76,9 @@ router.post('/posts/new', session, async (req, res) => {
     if(!content || content.length < 1) return res.status(400).json({ error: 'No content was provided' });
     if(content.length > 2000) return res.status(401).send({ error: 'Unable to create new post, due to content length being over 2000 characters' });
     try {
-        const id = short.generate();
+        // const id = short.generate();
+        // @ts-ignore
+        const id = flake.generate(); 
         const date = new Date().toISOString();
         const data = { 
         // @ts-ignore
@@ -98,7 +100,9 @@ router.post('/posts/comment/:id', session, async (req, res) => {
     if(req.body.content.length > 2000) res.status(400).send({ error: `Unable to edit post due to content being longer than 2000 characters. 2000/${req.body.content.length - 2000}` });
 
     try {
-        const id = short.generate();
+        // const id = short.generate();
+        // @ts-ignore
+        const id = flake.generate(); 
         const date = new Date().toISOString();
         const data = {
             original: req.params.id, 

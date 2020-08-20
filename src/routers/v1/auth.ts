@@ -3,10 +3,19 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import short from 'short-uuid';
 import isAscii from 'is-ascii-control-char';
-import { EMAIL_REGEX, PASSWORD_REGEX } from "../../constants";
+import { EMAIL_REGEX, PASSWORD_REGEX, SPOTIFY_URL, SPOTIFY_REDIRECT } from "../../constants";
 import session from '../../middleware/session';
+import querystring from 'querystring';
+import fetch from 'node-fetch';
 
+const centra = require('@aero/centra');
 const router = Router();
+
+const encodeFormData = (data) => {
+  return Object.keys(data)
+  .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(data[key]))
+  .join('&');
+}
 
 router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body;
@@ -86,7 +95,7 @@ router.post('/register', async (req: Request, res: Response) => {
     await db.users.insertOne({ id: id, username: username, email: email.toLowerCase(), avatar: '', password: encryptedPass,
                             email_code: '', email_verified: false, theme: 'light', suspended: false, suspended_time: null,
                             permissions: ['default'], followers: [], following: [], blocked: [], connections: {},
-                            verified: false, registered_at: new Date().toISOString(), mfa_enabled: false
+                            verified: false, deactivated: false, registered_at: new Date().toISOString(), mfa_enabled: false
     });
     return res.status(200).json({
       email: email.toLowerCase(),
@@ -98,6 +107,87 @@ router.post('/register', async (req: Request, res: Response) => {
   } catch(err) {
     return res.status(400).send({ error: 'It seems something went wrong', err: err.stack });
   }
+});
+
+router.get('/spotify', async (req, res) => {
+  let scopes = 'user-read-private user-read-email';
+  res.redirect('https://accounts.spotify.com/authorize' +
+    '?response_type=code' +
+    '&client_id=' + process.env.spotify_client +
+    (scopes ? '&scope=' + encodeURIComponent(scopes) : '') +
+    '&redirect_uri=' + encodeURIComponent('http://localhost:3000/1.0/auth/spotify/callback'));
+});
+
+// router.get('/spotify/callback', async (req, res) => {
+  // let body = {
+  //   grant_type: 'authorization_code',
+  //   code: req.query.code,
+  //   redirect_uri: SPOTIFY_REDIRECT,
+  //   client_id: process.env.spotify_client as string,
+  //   client_secret: process.env.spotify_secret as string
+  // }
+
+//   await fetch(SPOTIFY_URL, {
+//     method: 'POST',
+//     headers: {
+//       'Content-Type': 'application/x-www-form-urlencoded',
+//       'Accept': 'application/json'
+//     },
+//     body: encodeFormData(body as any)
+//   })
+//   .then(resp => resp.json())
+//   .then(data => {
+//     // @ts-ignore
+//     let query = querystring.stringify(data);
+//     res.redirect(`http://localhost:3000/spotify/callback/${query}`);
+//   });
+// });
+
+router.get('/spotify/callback', session, async (req, res) => {
+  let body = {
+    grant_type: 'authorization_code',
+    code: req.query.code,
+    redirect_uri: SPOTIFY_REDIRECT,
+    // client_id: process.env.spotify_client as string,
+    // client_secret: process.env.spotify_secret as string
+  }
+
+  // const tokens = await fetch(SPOTIFY_URL, {
+  //   method: 'POST',
+  //   headers: {
+      // 'Authorization': `Basic ${Buffer.from(`${process.env.spotify_client}:${process.env.spotify_secret}`).toString('base64')}`
+  //   },
+  //   body: encodeFormData(body as any)
+  // });
+
+  // let access = await fetch('https://api.spotify.com/v1/me', {
+  //   headers: {
+  //     'Authorization': `Bearer ${tokens.access_token}`
+  //   }
+  // });
+
+  const tokens = await centra(SPOTIFY_URL, 'POST')
+    .body(body, 'form')
+    .header('Authorization', `Basic ${Buffer.from(`${process.env.spotify_client}:${process.env.spotify_secret}`).toString('base64')}`)
+    .json();
+
+  const access = await centra('https://api.spotify.com/v1/me')
+  .header('Authorization', `Bearer ${tokens.access_token}`)
+  .json();
+
+  if (access.error) return res.status(401).send({ error: 'It seems something went wrong' });
+
+  const spotifyData = {
+    id: access.id,
+    uri: access.uri
+  }
+
+  // @ts-ignore
+  const connection = await db.users.findOne({ id: req.user.id }, { "connections.spotify.id": access.id });
+  // @ts-ignore
+  if(!connection) await db.users.updateOne({ id: req.user.id }, { $push: { connections: { spotify: spotifyData } } });
+
+  return res.status(200).send({ data: spotifyData });
 });
 
 // removed email verification for now for testing purposes

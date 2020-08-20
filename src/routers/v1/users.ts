@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import session from '../../middleware/session';
 const router = Router();
 const { messages } = require('../../utils.json');
-import { v4 as uuid } from 'uuid';
 import short from 'short-uuid';
 
 router.get('/@me', session, async (req, res) => {

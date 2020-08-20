@@ -7,6 +7,8 @@ router.post('/ban/:id', session, async (req: Request, res: Response, next: NextF
   // @ts-ignore
   if(!req.user.permissions.includes(/(admin|developer|staff)/))
     return res.status(401).send({ erorr: 'Unable to use this endpoint due to missing permissions' }); 
+
+  return res.status(200).send({ ok: true });
 });
 
 export default router;

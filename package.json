@@ -5,7 +5,6 @@
   "author": "Kyle <cool@impd.cc>",
   "main": "build/app.js",
   "dependencies": {
-    "@aero/centra": "^1.0.4",
     "@pebblo/logger": "0.0.2",
     "@sendgrid/mail": "^7.2.2",
     "bcrypt": "^4.0.1",
@@ -22,8 +21,7 @@
     "node-fetch": "^2.6.0",
     "nodemailer": "^6.4.11",
     "querystring": "^0.2.0",
-    "short-uuid": "^3.1.1",
-    "urlencode": "^1.1.0"
+    "short-uuid": "^3.1.1"
   },
   "devDependencies": {
     "@types/bcrypt": "^3.0.0",

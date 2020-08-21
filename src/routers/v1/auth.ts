@@ -17,7 +17,7 @@ const encodeFormData = (data) => {
   .join('&');
 }
 
-router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/login', async (req: Request, res: Response) => {
   const { email, password } = req.body;
   if(!email || !password)
       return res.status(400).send({ message: 'Missing required information' });
@@ -30,9 +30,10 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
       return res.status(401).send({ error: 'Unable to login due to your account being disabled. Please check your email for more information.' });
     if(user) {
       if(bcrypt.compareSync(password, user.password)) {
-        await jwt.sign({ id: user.id, permissions: user.permissions, exp: 900 }, process.env.jwt_secret as string,
-        { algorithm: 'HS256' }, async (err, token) => {
-          if(err) return res.status(400).json({ error: 'It seems something went wrong, please try again' });
+        // @ts-ignore
+        await jwt.sign({ id: user.id, session: flake.generate(), iat: 900 }, process.env.jwt_secret as string,
+        { algorithm: 'HS256' }, (err, token) => {
+          if(err) return res.status(400).json({ err: 'account_error' });
           const account = {
             id: user.id,
             username: user.username,
@@ -41,22 +42,17 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
             permissions: user.permissions,
             access_token: token
           }
-          // @ts-ignore
-          const findToken = await db.tokens.findOne({ token });
-          // @ts-ignore
-          if(findToken) await db.tokens.deleteOne({ token: token });
-          // @ts-ignore
-          await db.tokens.insertOne({ id: user.id, token: token });
           return res.status(200).json(account);
          });
         }
-    } else {
-      return res.status(401).send({ error: 'Unable to login, passwords did not match' });
-    }
-      } catch(err) {
-        return res.status(400).send({ error: 'Something went wrong'});
+      } else {
+        return res.status(401).json({ error: 'Unable to login, passwords did not match' });
+      }
+    } catch(err) {
+      return res.status(400).send({ error: 'Something went wrong'});
     }
 });
+
 
 router.post('/register', async (req: Request, res: Response) => {
   const { username, email, password, invite } = req.body;
@@ -203,7 +199,7 @@ router.post('/verify', async (req: Request, res: Response) => {
 router.post('/refresh', session, async (req: Request, res: Response) => {
   try {
     // @ts-ignore
-    await jwt.sign({ id: req.user.id, email: req.user.email, permissions: req.user.permissons, exp: 604800 }, process.env.jwt_secret as string, { algorithm: 'HS256' }, async (err, token) => {
+    await jwt.sign({ id: req.user.id, iat: 604800 }, process.env.jwt_secret as string, { algorithm: 'HS256' }, async (err, token) => {
       if(err) return res.status(400).json({ err: 'It seems something went wrong, please try again' });
       // @ts-ignore
       await db.tokens.insertOne({ id: req.user.id, refresh_token: token });

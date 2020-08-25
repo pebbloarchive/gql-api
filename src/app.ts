@@ -5,6 +5,7 @@ import { resolve } from 'path';
 import Logger from '@pebblo/logger'
 import Database from './database';
 import { Flake } from './util';
+// import Redis from 'ioredis';
 
 if (process.env.NODE_ENV !== 'production') {
   const { config } = require('dotenv')
@@ -37,6 +38,9 @@ const main = async () => {
     nodeId: 42,
     timeOffset: 1593561600 * 1000
   });
+
+  // @ts-ignore
+  // global.redis = new Redis();
 
   app.use('/1.0', v1);
 

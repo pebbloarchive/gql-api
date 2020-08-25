@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import session from '../../middleware/session';
-const router = Router();
-const { messages } = require('../../utils.json');
 import short from 'short-uuid';
+import { COMMON_ERROR } from '../../constants';
+
+const router = Router();
 
 router.get('/@me', session, async (req, res) => {
     try {
@@ -52,7 +53,7 @@ router.get('/@me/relationships', session, async (req, res) => {
         const data = await db.users.findOne({ id: req.user.id });
         return res.status(200).json({ following: data.following, blocked: data.blocked });
     } catch(err) {
-        res.status(400).send({ error: messages.fallback_error });
+        res.status(400).send({ error: COMMON_ERROR });
     }
 });
 
@@ -65,7 +66,7 @@ router.get('/@me/settings', session, async (req, res) => {
             mfa_enabled: data.mfa_enabled
         });
     } catch(err) {
-        res.status(400).send({ error: messages.fallback_error });
+        res.status(400).send({ error: COMMON_ERROR });
     }
 });
 
@@ -205,7 +206,6 @@ router.post('/block/:id', session, async (req, res) => {
     if(account.suspended) return res.status(401).send({ error: 'Unable to block that user, due to their account being suspended' });
     // @ts-ignore
     if(account.blocked.includes(req.user.id)) return res.status(401).send({ error: 'This user is already blocked' });
-    // if(account.is_private) return res.status(401).send({ error: 'Unable to follow that user, due to their account being private' });
     try {
         // @ts-ignore
         await db.users.updateOne({ id: req.params.id }, { $push: { followers: req.user.id } });
@@ -218,4 +218,3 @@ router.post('/block/:id', session, async (req, res) => {
 });
 
 export default router;
-

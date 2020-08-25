@@ -3,12 +3,12 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import short from 'short-uuid';
 import isAscii from 'is-ascii-control-char';
-import { EMAIL_REGEX, PASSWORD_REGEX, SPOTIFY_URL, SPOTIFY_REDIRECT, SPOTIFY_API } from "../../constants";
+import { EMAIL_REGEX, PASSWORD_REGEX, SPOTIFY_URL, SPOTIFY_REDIRECT, SPOTIFY_API, RANDOM_STRING, WEAK_PASSWORD, EMAIL_TAKEN, USERNAME_TAKEN, INVALID_EMAIL, UNSUPPORTED_USERNAME, INVALID_USERNAME, INVALID_INFO, INVALID_PASSWORD, INVALID_CONF_PASSWORD, COMMON_ERROR, genToken } from "../../constants";
 import session from '../../middleware/session';
 import querystring from 'querystring';
 import fetch from 'node-fetch';
 
-const centra = require('@aero/centra');
+const zxcvbn = require('zxcvbn');
 const router = Router();
 
 const encodeFormData = (data) => {
@@ -17,10 +17,14 @@ const encodeFormData = (data) => {
   .join('&');
 }
 
+// const generateRefresh = () => {
+//   const token = 
+// };
+
 router.post('/login', async (req: Request, res: Response) => {
   const { email, password } = req.body;
   if(!email || !password)
-      return res.status(400).send({ message: 'Missing required information' });
+      return res.status(400).send({ message: INVALID_INFO });
   try {
     // @ts-ignore
     const user = await db.users.findOne({ email: email.toLowerCase() });
@@ -40,16 +44,17 @@ router.post('/login', async (req: Request, res: Response) => {
             email: user.email,
             avatar: user.avatar,
             permissions: user.permissions,
-            access_token: token
+            created_at: user.registered_at,
+            connections: user.connections
           }
-          return res.status(200).json(account);
+          return res.status(200).json({ data: { access_token: token, refresh_token: genToken(30), account: account } });
          });
         }
       } else {
-        return res.status(401).json({ error: 'Unable to login, passwords did not match' });
+        return res.status(401).json({ error: INVALID_CONF_PASSWORD });
       }
     } catch(err) {
-      return res.status(400).send({ error: 'Something went wrong'});
+      return res.status(400).send({ error: COMMON_ERROR});
     }
 });
 
@@ -58,29 +63,33 @@ router.post('/register', async (req: Request, res: Response) => {
   const { username, email, password, invite } = req.body;
 
   if(!email || !password || !username)
-    return res.status(400).send({ message: 'Missing required information' });
+    return res.status(400).send({ message: INVALID_INFO });
 
   switch(true) {
     case(!username.match(/^(.){1,26}/)): {
-      return res.status(400).send({ error: 'Usernames cannot be shorter than 1 character and cannot be longer than 25 characters' });
+      return res.status(400).send({ error: INVALID_USERNAME });
     }
     case(isAscii(username)): {
-      return res.status(400).send({ erorr: 'Your username contains unsupported characters' });
+      return res.status(400).send({ erorr: UNSUPPORTED_USERNAME });
     }
     case(!email.match(EMAIL_REGEX)): {
-      return res.status(400).send({ error: 'Invalid email was provided.' });
+      return res.status(400).send({ error: INVALID_EMAIL });
     }
-    case(!password.match(PASSWORD_REGEX)): {
-      return res.status(400).send({ error: 'Your password must be 8 characters or longer, and contain one uppercase character and a number' });
-    }
+    // case(!password.match(PASSWORD_REGEX)): {
+    //   return res.status(400).send({ error: 'Your password must be 8 characters or longer, and contain one uppercase character and a number' });
+    // }
   }
+
+  const { score } = zxcvbn(password);
+
+  if(score < 3) return res.status(400).send({ error: WEAK_PASSWORD });
 
   // @ts-ignore
   const checkUsername = await db.users.findOne({ username: username });
-  if(checkUsername) return res.status(400).send({ error: 'That username is already in use.' });
+  if(checkUsername) return res.status(400).send({ error: USERNAME_TAKEN });
   // @ts-ignore
   const checkEmail = await db.users.findOne({ email: email.toLowerCase() });
-  if(checkEmail) return res.status(400).send({ error: 'That email is already in use.' });
+  if(checkEmail) return res.status(400).send({ error: EMAIL_TAKEN });
 
   try {
     let encryptedPass = await bcrypt.hash(password, 10);
@@ -101,82 +110,8 @@ router.post('/register', async (req: Request, res: Response) => {
       email_verified: false
     });
   } catch(err) {
-    return res.status(400).send({ error: 'It seems something went wrong', err: err.stack });
+    return res.status(400).send({ error: COMMON_ERROR });
   }
-});
-
-router.get('/spotify', async (req, res) => {
-  let scopes = 'user-read-private user-read-email';
-  res.redirect('https://accounts.spotify.com/authorize' +
-    '?response_type=code' +
-    '&client_id=' + process.env.spotify_client +
-    (scopes ? '&scope=' + encodeURIComponent(scopes) : '') +
-    '&redirect_uri=' + encodeURIComponent('http://localhost:3000/1.0/auth/spotify/callback'));
-});
-
-// router.get('/spotify/callback', async (req, res) => {
-  // let body = {
-  //   grant_type: 'authorization_code',
-  //   code: req.query.code,
-  //   redirect_uri: SPOTIFY_REDIRECT,
-  //   client_id: process.env.spotify_client as string,
-  //   client_secret: process.env.spotify_secret as string
-  // }
-
-//   await fetch(SPOTIFY_URL, {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/x-www-form-urlencoded',
-//       'Accept': 'application/json'
-//     },
-//     body: encodeFormData(body as any)
-//   })
-//   .then(resp => resp.json())
-//   .then(data => {
-//     // @ts-ignore
-//     let query = querystring.stringify(data);
-//     res.redirect(`http://localhost:3000/spotify/callback/${query}`);
-//   });
-// });
-
-router.get('/spotify/callback', session, async (req, res) => {
-  const body = {
-    grant_type: 'authorization_code',
-    code: req.query.code,
-    redirect_uri: SPOTIFY_REDIRECT,
-    // client_id: process.env.SPOTIFY_CLIENT as string,
-    // client_secret: process.env.SPOTIFY_SECRET as string
-  }
-
-  const spotify = await fetch(SPOTIFY_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${Buffer.from(`${process.env.SPOTIFY_CLIENT}:${process.env.SPOTIFY_SECRET}`).toString('base64')}`
-    },
-    body: JSON.stringify(body as any)
-  });
-
-  const access = await fetch(SPOTIFY_API, {
-    headers: {
-      'Authorization': `Bearer ${spotify.access_token}`
-    }
-  });
-
-  const json = await access.json();
-
-  if (json.error) return res.status(401).send({ error: 'It seems something went wrong' });
-
-  const spotifyData = {
-    id: json.id,
-    uri: json.uri
-  }
-
-  // @ts-ignore
-  const connection = await db.users.findOne({ id: req.user.id }, { "connections.spotify.id": json.id });
-  // @ts-ignore
-  if(!connection) await db.users.updateOne({ id: req.user.id }, { $push: { connections: { spotify: spotifyData } } });
-
-  return res.status(200).send({ data: spotifyData });
 });
 
 // removed email verification for now for testing purposes
@@ -198,36 +133,56 @@ router.post('/verify', async (req: Request, res: Response) => {
 
 router.post('/refresh', session, async (req: Request, res: Response) => {
   try {
-    // @ts-ignore
-    await jwt.sign({ id: req.user.id, iat: 604800 }, process.env.jwt_secret as string, { algorithm: 'HS256' }, async (err, token) => {
-      if(err) return res.status(400).json({ err: 'It seems something went wrong, please try again' });
-      // @ts-ignore
-      await db.tokens.insertOne({ id: req.user.id, refresh_token: token });
-      return res.status(200).send({
-        access_token: '',
-        refresh_token: token
-      });
-    });
+
   } catch(err) {
-    return res.status(400).json({ error: 'Something went wrong' });
+
   }
 });
 
-router.post('/logout', session, async (req: Request, res: Response) => {
-  const { token, refresh_token } = req.body;
-  if(!token || !refresh_token) return res.status(401).send({ error: 'Missing tokens' });
+// router.post('/refresh', session, async (req: Request, res: Response) => {
+//   try {
+//     // @ts-ignore
+//     await jwt.sign({ id: req.user.id, iat: 604800 }, process.env.jwt_secret as string, { algorithm: 'HS256' }, async (err, token) => {
+//       if(err) return res.status(400).json({ err: 'It seems something went wrong, please try again' });
+//       // @ts-ignore
+//       await db.tokens.insertOne({ id: req.user.id, refresh_token: token });
+//       return res.status(200).send({
+//         access_token: '',
+//         refresh_token: token
+//       });
+//     });
+//   } catch(err) {
+//     return res.status(400).json({ error: 'Something went wrong' });
+//   }
+// });
+
+// router.post('/logout', session, async (req: Request, res: Response) => {
+//   const { token, refresh_token } = req.body;
+//   if(!token || !refresh_token) return res.status(401).send({ error: 'Missing tokens' });
+//   try {
+//     // @ts-ignore
+//     const findToken = await db.tokens.findOne({ token: token });
+//     if(!findToken) return res.status(404).send();
+//       // @ts-ignore
+//     const findRefreshToken = await db.tokens.findOne({ refresh_token: refresh_token });
+//     if(!findRefreshToken) return res.status(404).send();
+//     // @ts-ignore
+//     await db.tokens.deleteOne({ refresh_token: refresh_token });
+//     // @ts-ignore
+//     await db.tokens.deleteOne({ token: token });
+//     return res.status(200).send({ access_token: '', refresh_token: '' });
+//   } catch(err) {
+//     return res.status(400).json({ error: 'Something went wrong' });
+//   }
+// });
+
+router.post('/refresh', session, async (req: Request, res: Response) => {
   try {
+    const data = {
+      token: RANDOM_STRING
+    }
     // @ts-ignore
-    const findToken = await db.tokens.findOne({ token: token });
-    if(!findToken) return res.status(404).send();
-      // @ts-ignore
-    const findRefreshToken = await db.tokens.findOne({ refresh_token: refresh_token });
-    if(!findRefreshToken) return res.status(404).send();
-    // @ts-ignore
-    await db.tokens.deleteOne({ refresh_token: refresh_token });
-    // @ts-ignore
-    await db.tokens.deleteOne({ token: token });
-    return res.status(200).send({ access_token: '', refresh_token: '' });
+    redis.set(`refresh_${req.user.id}`, data);
   } catch(err) {
     return res.status(400).json({ error: 'Something went wrong' });
   }

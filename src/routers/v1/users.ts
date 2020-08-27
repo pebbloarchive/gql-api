@@ -26,17 +26,22 @@ router.get('/@me', session, async (req, res) => {
     }   
 });
 
-router.get('/get/:id', session, async (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
         // @ts-ignore
-       const user = await db.users.findOne({ id: req.params.id });
+       const user = await db.users.findOne({ username: req.params.id });
        // if(!req.params.id.match(/[0-9]/)) return res.status(400).send({ error: `Value "${req.params.id}" is not a snowflake.` });
        if(!user) return res.status(400).send({ error: `Unknown User` });
     //    const posts = await db.posts.find
        if(user) {
          return res.status(200).send({
+            id: user.id,
             username: user.username,
             avatar: user.avatar,
+            description: user.description,
+            permissions: user.permissions,
+            private: user.is_private,
+            suspended: user.suspended,
             created_at: user.registered_at,
             followingCount: user.following.length,
             followersCount: user.followers.length

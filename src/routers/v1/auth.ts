@@ -17,10 +17,6 @@ const encodeFormData = (data) => {
   .join('&');
 }
 
-// const generateRefresh = () => {
-//   const token = 
-// };
-
 router.post('/login', async (req: Request, res: Response) => {
   const { email, password } = req.body;
   if(!email || !password)
@@ -131,14 +127,6 @@ router.post('/verify', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/refresh', session, async (req: Request, res: Response) => {
-  try {
-
-  } catch(err) {
-
-  }
-});
-
 // router.post('/refresh', session, async (req: Request, res: Response) => {
 //   try {
 //     // @ts-ignore
@@ -175,17 +163,5 @@ router.post('/refresh', session, async (req: Request, res: Response) => {
 //     return res.status(400).json({ error: 'Something went wrong' });
 //   }
 // });
-
-router.post('/refresh', session, async (req: Request, res: Response) => {
-  try {
-    const data = {
-      token: RANDOM_STRING
-    }
-    // @ts-ignore
-    redis.set(`refresh_${req.user.id}`, data);
-  } catch(err) {
-    return res.status(400).json({ error: 'Something went wrong' });
-  }
-});
 
 export default router;

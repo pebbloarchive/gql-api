@@ -62,7 +62,7 @@ router.post('/register', async (req: Request, res: Response) => {
     return res.status(400).send({ message: INVALID_INFO });
 
   switch(true) {
-    case(!username.match(/^(.){1,26}/)): {
+    case(!username.match(/^(.){3,26}/)): {
       return res.status(400).send({ error: INVALID_USERNAME });
     }
     case(isAscii(username)): {
@@ -93,11 +93,13 @@ router.post('/register', async (req: Request, res: Response) => {
     // @ts-ignore
     const id = flake.generate(); 
     // @ts-ignore
-    await db.users.insertOne({ id: id, username: username, email: email.toLowerCase(), avatar: '', password: encryptedPass,
-                            email_code: '', email_verified: false, theme: 'light', suspended: false, suspended_time: null,
-                            permissions: ['default'], followers: [], following: [], blocked: [], connections: {},
+    await db.users.insertOne({ id: id, username: username, name: '', description: '', email: email.toLowerCase(), avatar: '', password: encryptedPass,
+                            email_code: '', email_verified: false, suspended: false, suspended_time: null,
+                            permissions: ['default'], followers: [], following: [], blocked: [], connections: {}, settings: {},
                             verified: false, deactivated: false, registered_at: new Date().toISOString(), mfa_enabled: false
     });
+            // @ts-ignore
+            await db.users.createIndex( { username: 1 }, { collation: { locale: 'en', strength : 2 }})
     return res.status(200).json({
       email: email.toLowerCase(),
       id: id,
@@ -106,7 +108,7 @@ router.post('/register', async (req: Request, res: Response) => {
       email_verified: false
     });
   } catch(err) {
-    return res.status(400).send({ error: COMMON_ERROR });
+    return res.status(400).send({ error: COMMON_ERROR, err: err.stack });
   }
 });
 

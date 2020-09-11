@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import session from '../../middleware/session';
 import { COMMON_ERROR, INVALID_INFO, INVALID_USER } from '../../constants';
+import { v4 as uuid } from 'uuid';
 
 const router = Router();
 
@@ -20,7 +21,9 @@ router.get('/@me', session, async (req: Request, res: Response) => {
             permissions: user.permissions,
             connections: user.connections,
             followingCount: user.following.length,
-            followersCount: user.followers.length
+            followersCount: user.followers.length,
+            following: user.following,
+            followers: user.followers,
         });
     } catch(err) {
         return res.status(400).send({ error: 'Something went wrong, please try again.' });
@@ -32,7 +35,6 @@ router.get('/:id', async (req: Request, res: Response) => {
         // @ts-ignore
     //    const user = await db.users.findOne({ username: req.params.id });
        const user = await db.users.findOne({ username: req.params.id }, {"collation" : {"locale" : "en_US", "strength": 2 }})
-       console.log(user)
        if(!user) return res.status(400).send({ error: `Unknown User` });
        // @ts-ignore
        const posts = await db.posts.find({ author: user.id }).toArray();
@@ -50,7 +52,10 @@ router.get('/:id', async (req: Request, res: Response) => {
             created_at: user.registered_at,
             followingCount: user.following.length,
             followersCount: user.followers.length,
-            posts: posts.filter(post => post.type === 'post')
+            following: user.following,
+            followers: user.followers,
+            posts: posts.filter(post => post.type === 'post'),
+            settings: user.settings
         });
       }
     } catch(err) {
@@ -69,8 +74,10 @@ router.get('/:id/posts', session, async (req: Request, res: Response) => {
        posts.forEach(post => delete post._id);
        if(user) {
          return res.status(200).send({
-            id: user.id,
+            user_id: user.id,
             username: user.username,
+            avatar: user.avatar,
+            permissions: user.permissions,
             posts: posts.filter(post => post.type === 'post')
         });
       }
@@ -89,17 +96,34 @@ router.get('/@me/relationships', session, async (req: Request, res: Response) =>
     }
 });
 
-router.get('/@me/settings', session, async (req: Request, res: Response) => {
+router.post('/message/:id', session, async (req: Request, res: Response) => {
+    if(!req.params.id) return res.status(400).send({ error: COMMON_ERROR });
+    let { content, attachments } = req.body;
+    if(!attachments) attachments = [];
+    if(!content || content.length < 1) return res.status(400).json({ error: 'No content was provided' });
+    if(content.length > 2000) return res.status(401).send({ error: 'Unable to create new post, due to content length being over 2000 characters' });
+    
+    const message_id = uuid();
+    const time = new Date().toISOString();
+    // @ts-ignore
+    const user = await db.users.findOne({ id: req.params.id });
+    if(!user) return res.status(404).send({ error: 'Unable to find that user' }); 
+
+    const data = {
+        // @ts-ignore
+        id: message_id, recipient: req.params.id, sender: req.user.id, time: time, content: content, attachments: attachments, user: { name: user.name, username: user.username, avatar: user.avatar }
+    }
     try {
         // @ts-ignore
-        const data = await db.users.findOne({ id: req.user.id });
-        return res.status(200).send({ 
-            theme: data.theme,
-            mfa_enabled: data.mfa_enabled
-        });
+        await db.messages.insertOne(data);
+        return res.status(200).json(data);
     } catch(err) {
-        res.status(400).send({ error: COMMON_ERROR });
+        return res.status(400).send({ error: 'Unable to send message' });
     }
+});
+
+router.get('/message/:id', session, async (req: Request, res: Response) => {
+    if(!req.params.id) return res.status(400).send({ error: COMMON_ERROR });
 });
 
 router.get('/posts/:id', async(req: Request, res: Response) => {
@@ -113,21 +137,20 @@ router.get('/posts/:id', async(req: Request, res: Response) => {
         await res.status(200).send({
             id: postId.id,
             author: postId.author,
-            author_info: {
-                name: user.name,
-                username: user.username,
-                avatar: user.avatar
-            },
             original: postId.original,
             content: postId.content,
             attachments: postId.attachments,
             likes: postId.likes,
             shares: postId.shares,
             created_at: postId.created_at,
-            updated_at: postId.updated_at
+            updated_at: postId.updated_at,
+            name: user.name,
+            username: user.username,
+            avatar: user.avatar,
+            permissions: user.permissions,
         });
     } catch(err) {
-        return res.status(400).send({ error: COMMON_ERROR });
+        return res.status(400).send({ error: COMMON_ERROR, err: err.stack });
     }
 });
 
@@ -137,7 +160,6 @@ router.post('/posts/new', session, async (req: Request, res: Response) => {
     if(!content || content.length < 1) return res.status(400).json({ error: 'No content was provided' });
     if(content.length > 2000) return res.status(401).send({ error: 'Unable to create new post, due to content length being over 2000 characters' });
     try {
-        // const id = short.generate();
         // @ts-ignore
         const id = flake.generate(); 
         const date = new Date().toISOString();
@@ -146,7 +168,9 @@ router.post('/posts/new', session, async (req: Request, res: Response) => {
             id: id, author: req.user.id, content: content, attachments: attachments, likes: [], shares: [], created_at: date, type: 'post'
         }
         // @ts-ignore
-        await db.posts.insertOne({ id: id, author: req.user.id, content: content, attachments: attachments, likes: [], shares: [], created_at: date, type: 'post' });
+        let user = await db.users.findOne({ id: req.user.id });
+        // @ts-ignore
+        await db.posts.insertOne({ id: id, post_id: id, author: req.user.id, content: content, attachments: attachments, likes: [], shares: [], created_at: date, type: 'post' });
         return res.status(201).send({ message: 'Successfully created new post', result: data });
     } catch(err) {
         return res.status(400).send({ error: 'Unable to create new post' });
@@ -238,7 +262,7 @@ router.put('/posts/:id/unlike', session, async (req: Request, res: Response) => 
     }
 });
 
-router.post('/posts/edit/:id', session, async (req: Request, res: Response) => {
+router.patch('/posts/edit/:id', session, async (req: Request, res: Response) => {
     // @ts-ignore
     const post = await db.posts.findOne({ id: req.params.id });
     if(!post) return res.status(400).send({ error: 'Unable to find that post' });
@@ -346,29 +370,29 @@ router.post('/block/:id', session, async (req: Request, res: Response) => {
     }
 });
 
-router.patch('/update/settings', session, async (req: Request, res: Response) => {
-    let { is_private, allow_comment, followers, outside_messages, scan_messages, scan_media } = req.body;
-    // if(!is_private || !allow_comment || !followers || !outside_messages || !scan_messages || !scan_media) return res.status(400).send({ error: INVALID_INFO });
-    // @ts-ignore
-    const user = await db.users.findOne({ id: req.user.id });
-    if(!user) return res.status(404).send({ error: INVALID_USER });
-    // if(!Number(is_private) || !Number(allow_comment) || !Number(followers) || !Number(outside_messages) || !Number(scan_messages) || !Number(scan_media)) return res.status(400).send({ error: 'Body must equal an integer.' });
-    let data;
-    try {
-        if(is_private) {
-            if(typeof is_private !== 'boolean') return res.status(200).send({ error: 'is_private can only be a boolean' });
-        }
-        if(allow_comment) data = allow_comment;
-        if(followers) data = followers;
-        if(outside_messages) data = outside_messages;
-        if(scan_messages) data = scan_messages;
-        if(scan_media) data = scan_media;
-        // @ts-ignore
-        await db.users.updateOne({ id: req.user.id }, { $set : { privacy: data }});
-        return res.status(200).json(data);
-    } catch(err) {
-        return res.status(400).send({ error: COMMON_ERROR });
-    }
-});
+// router.patch('/update/settings', session, async (req: Request, res: Response) => {
+//     let { is_private, allow_comment, followers, outside_messages, scan_messages, scan_media } = req.body;
+//     // if(!is_private || !allow_comment || !followers || !outside_messages || !scan_messages || !scan_media) return res.status(400).send({ error: INVALID_INFO });
+//     // @ts-ignore
+//     const user = await db.users.findOne({ id: req.user.id });
+//     if(!user) return res.status(404).send({ error: INVALID_USER });
+//     // if(!Number(is_private) || !Number(allow_comment) || !Number(followers) || !Number(outside_messages) || !Number(scan_messages) || !Number(scan_media)) return res.status(400).send({ error: 'Body must equal an integer.' });
+//     let data;
+//     try {
+//         if(is_private) {
+//             if(typeof is_private !== 'boolean') return res.status(200).send({ error: 'is_private can only be a boolean' });
+//         }
+//         if(allow_comment) data = allow_comment;
+//         if(followers) data = followers;
+//         if(outside_messages) data = outside_messages;
+//         if(scan_messages) data = scan_messages;
+//         if(scan_media) data = scan_media;
+//         // @ts-ignore
+//         await db.users.updateOne({ id: req.user.id }, { $set : { privacy: data }});
+//         return res.status(200).json(data);
+//     } catch(err) {
+//         return res.status(400).send({ error: COMMON_ERROR });
+//     }
+// });
 
 export default router;

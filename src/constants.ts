@@ -17,6 +17,7 @@ export const UNSUPPORTED_USERNAME = 'Usernames can\'t include unicode.';
 export const INVALID_EMAIL = 'An invalid email was provided.';
 export const WEAK_PASSWORD = 'Your password was too weak, please choose a stronger password.';
 export const INVALID_CONF_PASSWORD = 'Your passwords do not match each other.';
+export const SAME_PASSWORD_AS_BEFORE = 'You can\'t use a previously used password.';
 export const USERNAME_TAKEN = 'Sorry, that username is already in use.';
 export const EMAIL_TAKEN = 'Sorry, that email is already in use.';
 export const INVALID_USER = 'Unable to find that user.';

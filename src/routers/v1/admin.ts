@@ -10,7 +10,7 @@ router.post('/ban/:id', session, async (req: Request, res: Response, next: NextF
   const me = await db.users.findOne({ id: req.user.id });
   // @ts-ignore
   if(!me.permissions.includes(/(admin|developer|staff)/))
-    return res.status(401).send({ error: 'Unable to use this endpoint due to missing permissions' }); 
+    return res.status(401).send({ error: 'Unable to use this endpoint due to missing permissions' });
 
   try {
     // @ts-ignore
@@ -21,6 +21,10 @@ router.post('/ban/:id', session, async (req: Request, res: Response, next: NextF
   } catch(err) {
     return res.send(400).send({ error: 'It seems something went wrong' });
   }
+});
+
+router.post('/verify/:id', session, async (req: Request, res: Response) => {
+
 });
 
 export default router;

@@ -3,10 +3,10 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import short from 'short-uuid';
 import isAscii from 'is-ascii-control-char';
-import { EMAIL_REGEX, PASSWORD_REGEX, SPOTIFY_URL, SPOTIFY_REDIRECT, SPOTIFY_API, RANDOM_STRING, WEAK_PASSWORD, EMAIL_TAKEN, USERNAME_TAKEN, INVALID_EMAIL, UNSUPPORTED_USERNAME, INVALID_USERNAME, INVALID_INFO, INVALID_PASSWORD, INVALID_CONF_PASSWORD, COMMON_ERROR, genToken } from "../../constants";
+import { EMAIL_REGEX, PASSWORD_REGEX, SPOTIFY_URL, SPOTIFY_REDIRECT, SPOTIFY_API, RANDOM_STRING, WEAK_PASSWORD, EMAIL_TAKEN, USERNAME_TAKEN, INVALID_EMAIL, UNSUPPORTED_USERNAME, INVALID_USERNAME, INVALID_INFO, INVALID_PASSWORD, INVALID_CONF_PASSWORD, COMMON_ERROR, genToken, SAME_PASSWORD_AS_BEFORE } from "../../constants";
 import session from '../../middleware/session';
 import querystring from 'querystring';
-import fetch from 'node-fetch';
+import { getRedisClient } from '../../redis';
 
 const zxcvbn = require('zxcvbn');
 const router = Router();
@@ -19,39 +19,35 @@ const encodeFormData = (data) => {
 
 router.post('/login', async (req: Request, res: Response) => {
   const { email, password } = req.body;
-  if(!email || !password)
-      return res.status(400).send({ message: INVALID_INFO });
+
+  if(!email || !password) return res.status(400).send({ error: INVALID_INFO });
+
+  // @ts-ignore
+  const user = await db.users.findOne({ email: email.toLowerCase() });
+  if(!user) return res.status(404).send({ error: INVALID_EMAIL });
+
+  const checkPassword = bcrypt.compareSync(password, user.password);
+  if(!checkPassword) res.status(401).send({ error: INVALID_CONF_PASSWORD });
+
   try {
     // @ts-ignore
-    const user = await db.users.findOne({ email: email.toLowerCase() });
-    if(!user) 
-      return res.status(404).send({ error: 'Unable to find that account' });
-    if(user.suspended)
-      return res.status(401).send({ error: 'Unable to login due to your account being disabled. Please check your email for more information.' });
-    if(user) {
-      if(bcrypt.compareSync(password, user.password)) {
-        // @ts-ignore
-        await jwt.sign({ id: user.id, session: flake.generate(), iat: 900 }, process.env.jwt_secret as string,
-        { algorithm: 'HS256' }, (err, token) => {
-          if(err) return res.status(400).json({ err: 'account_error' });
-          const account = {
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            avatar: user.avatar,
-            permissions: user.permissions,
-            created_at: user.registered_at,
-            connections: user.connections
-          }
-          return res.status(200).json({ data: { access_token: token, refresh_token: genToken(30), account: account } });
-         });
-        }
-      } else {
-        return res.status(401).json({ error: INVALID_CONF_PASSWORD });
+    jwt.sign({ id: user.id, session: flake.generate(), exp: 900 }, process.env.JWT_SECRET as string, { algorithm: 'HS256' }, (err, token) => {
+      if(err) return res.status(400).send({ error: COMMON_ERROR });
+        const account = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+        permissions: user.permissions,
+        created_at: user.registered_at,
+        connections: user.connections
       }
-    } catch(err) {
-      return res.status(400).send({ error: COMMON_ERROR});
-    }
+      // getRedisClient().set(`tokens:${user.id}`, token);
+      return res.status(200).json({ data: { access_token: token, refresh_token: genToken(30), account: account } });
+    });
+  } catch(err) {
+    return res.status(400).send({ error: COMMON_ERROR });
+  }
 });
 
 
@@ -71,9 +67,6 @@ router.post('/register', async (req: Request, res: Response) => {
     case(!email.match(EMAIL_REGEX)): {
       return res.status(400).send({ error: INVALID_EMAIL });
     }
-    // case(!password.match(PASSWORD_REGEX)): {
-    //   return res.status(400).send({ error: 'Your password must be 8 characters or longer, and contain one uppercase character and a number' });
-    // }
   }
 
   const { score } = zxcvbn(password);
@@ -91,24 +84,22 @@ router.post('/register', async (req: Request, res: Response) => {
     let encryptedPass = await bcrypt.hash(password, 10);
     // const id = short.generate();
     // @ts-ignore
-    const id = flake.generate(); 
+    const id = flake.generate();
     // @ts-ignore
-    await db.users.insertOne({ id: id, username: username, name: '', description: '', email: email.toLowerCase(), avatar: '', password: encryptedPass,
+    await db.users.insertOne({ id: id, username: username, name: username, description: 'Descriptions are cool, right?', email: email.toLowerCase(), avatar: 'https://cdn.discordapp.com/attachments/596156721928470547/746173257866018866/unknown.png', password: encryptedPass,
                             email_code: '', email_verified: false, suspended: false, suspended_time: null,
-                            permissions: ['default'], followers: [], following: [], blocked: [], connections: {}, settings: {},
-                            verified: false, deactivated: false, registered_at: new Date().toISOString(), mfa_enabled: false
+                            permissions: ['default', 'beta'], followers: [], following: [], blocked: [], connections: {},
+                            settings: { theme: "dark", rainbow: false, privacy: {} },
+                            deactivated: false, created_at: new Date().toISOString(), mfa_enabled: false
     });
-            // @ts-ignore
-            await db.users.createIndex( { username: 1 }, { collation: { locale: 'en', strength : 2 }})
     return res.status(200).json({
       email: email.toLowerCase(),
       id: id,
       username: username,
-      avatar: null,
       email_verified: false
     });
   } catch(err) {
-    return res.status(400).send({ error: COMMON_ERROR, err: err.stack });
+    return res.status(400).send({ error: COMMON_ERROR });
   }
 });
 
@@ -129,10 +120,42 @@ router.post('/verify', async (req: Request, res: Response) => {
   }
 });
 
+router.post('/update/password', session, async (req: Request, res: Response) => {
+  const { password, confirm_password, new_password } = req.body;
+  if(!password || !confirm_password || !new_password) {
+    return res.status(401).send({ error: 'missing_content' });
+  }
+
+  // @ts-ignore
+  const user = await db.users.findOne({ id: req.user.id });
+
+  const { score } = zxcvbn(new_password);
+
+  if(score < 3) return res.status(400).send({ error: WEAK_PASSWORD });
+
+  const encryptedPass = await bcrypt.hash(new_password, 10);
+
+  const checkPassword = bcrypt.compareSync(password, user.password);
+
+  if(!checkPassword || (confirm_password !== new_password)) return res.status(401).send({ error: INVALID_CONF_PASSWORD });
+
+  if(new_password === password) return res.status(401).send({ error: SAME_PASSWORD_AS_BEFORE });
+
+  try {
+    // @ts-ignore
+    await db.users.updateOne({ id: req.user.id }, { $set: { password: encryptedPass } });
+    // @ts-ignore
+    let token = await jwt.sign({ id: req.user.id, session: flake.generate(), exp: 900 }, process.env.JWT_SECRET as string, { algorithm: 'HS256' });
+    return res.status(200).send({ message: 'password_success', token: token });
+  } catch(err) {
+      return res.status(400).send({ error: COMMON_ERROR });
+  }
+});
+
 // router.post('/refresh', session, async (req: Request, res: Response) => {
 //   try {
 //     // @ts-ignore
-//     await jwt.sign({ id: req.user.id, iat: 604800 }, process.env.jwt_secret as string, { algorithm: 'HS256' }, async (err, token) => {
+//     await jwt.sign({ id: req.user.id, iat: 604800 }, process.env.JWT_SECRET as string, { algorithm: 'HS256' }, async (err, token) => {
 //       if(err) return res.status(400).json({ err: 'It seems something went wrong, please try again' });
 //       // @ts-ignore
 //       await db.tokens.insertOne({ id: req.user.id, refresh_token: token });

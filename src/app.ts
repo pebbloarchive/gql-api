@@ -5,7 +5,10 @@ import { resolve } from 'path';
 import Logger from '@pebblo/logger'
 import Database from './database';
 import { Flake } from './util';
-import Redis from 'ioredis';
+// import Redis from 'ioredis';
+import { connectRedis  } from './redis';
+import { MinioClient } from './minio';
+import busboy from 'connect-busboy';
 
 if (process.env.NODE_ENV !== 'production') {
   const { config } = require('dotenv')
@@ -24,12 +27,12 @@ const port: number = 3000;
 app.use(cors());
 app.use(json());
 app.use(urlencoded({ extended: true }));
-// app.use(minio);
+app.use(busboy());
 
 const main = async () => {
 
   // @ts-ignore
-  global.db = new Database(process.env.db_url);
+  global.db = new Database(process.env.DB_URL as string);
   // @ts-ignore
   await db.connect();
 
@@ -39,8 +42,7 @@ const main = async () => {
     timeOffset: 1593561600 * 1000
   });
 
-  // @ts-ignore
-  global.redis = new Redis();
+  connectRedis();
 
   app.use('/1.0', v1);
 
@@ -50,3 +52,4 @@ const main = async () => {
 }
 
 main();
+

@@ -1,0 +1,9 @@
+node_modules
+.vscode
+.env
+yarn.lock
+**/.env
+**/.vscode
+**/yarn.lock
+**/node_modules
+**/dist

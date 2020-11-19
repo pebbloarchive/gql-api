@@ -10,9 +10,6 @@ import _redis from 'redis';
 import Redis from 'ioredis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
-import { createPersistedQueryLink } from 'apollo-link-persisted-queries';
-import { createHttpLink } from 'apollo-link-http';
-import { InMemoryCache } from 'apollo-cache-inmemory';
 import { MyContext } from './types';
 
 const app = express();
@@ -41,8 +38,6 @@ const main = async () => {
         })
     )
 
-    const link = createPersistedQueryLink().concat(createHttpLink({ uri: "/graphql" }));
-
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
             resolvers: [PostResolver, UserResolver],
@@ -50,8 +45,6 @@ const main = async () => {
         }),
         // playground: false,
         debug: false,
-        cache: new InMemoryCache(),
-        link: link,
         context: ({ req, res }) => ({ em: orm.em, req, res, redis })
     });
 

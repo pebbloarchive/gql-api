@@ -1,5 +1,12 @@
-import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
+import { Entity, Enum, PrimaryKey, Property } from "@mikro-orm/core";
 import { Field, ObjectType } from "type-graphql";
+
+export enum Permissions {
+    USER = 10,
+    SUPPORT = 20,
+    MODERATOR = 50,
+    ADMIN = 100
+}
 
 @ObjectType()
 @Entity()
@@ -47,9 +54,22 @@ export class User {
     @Property({ type: 'boolean', default: false })
     verified: boolean;
 
-    @Field()
-    @Property({ type: 'boolean', default: false })
-    staff: boolean;
+    @Field(() => String)
+	@Property({ type: 'text', default: "[]" })
+    blocked!: string[];
+    
+    @Field(() => String)
+	@Property({ type: 'text', default: "[]" })
+    following!: string[];
+    
+    @Field(() => String)
+	@Property({ type: 'text', default: "[]" })
+	followers!: string[];
+
+    // @Enum()
+    // @Field()
+    // @Property({ type: 'boolean', default: Permissions.USER })
+    // staff!: Permissions;
 
     @Property({ type: 'boolean', default: false })
     suspended: boolean;

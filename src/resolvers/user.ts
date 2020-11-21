@@ -7,7 +7,7 @@ import UsernamePasswordInput from "./UsernamePasswordInput";
 import { validateRegister } from "../utils/validateRegister";
 import * as consts from '../constants';
 import { isAuthed } from "../middleware/isAuthed";
-import { nextTick } from "process";
+import { snakeCase } from "lodash";
 
 @ObjectType()
 class FieldError {
@@ -185,7 +185,8 @@ export class UserResolver {
         @Arg("password") password: string,
         @Ctx() { em, req }: MyContext
     ): Promise<UserResponse> {
-        const user = await em.findOne(User, usernameOrEmail.includes('@') ? { email: usernameOrEmail } : { username: usernameOrEmail });
+        // @ts-ignore
+        const user = await em.findOne(User, usernameOrEmail.includes('@') ? { 'lower(email)': usernameOrEmail.toLowerCase() } : { 'lower(username)': usernameOrEmail.toLowerCase() });
         if(!user) {
             return {
                 errors: [

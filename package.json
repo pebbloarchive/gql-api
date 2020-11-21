@@ -10,7 +10,8 @@
     "dev": "nodemon dist/index.js",
     "start": "node dist/index.js",
     "start2": "ts-node src/index.ts",
-    "dev2": "nodemon --exec ts-node src/index.ts"
+    "dev2": "nodemon --exec ts-node src/index.ts",
+    "gen": "mikro-orm migration:create"
   },
   "author": "",
   "license": "ISC",
@@ -30,10 +31,10 @@
     "typescript": "^3.9.7"
   },
   "dependencies": {
+    "@apollo/client": "^3.2.7",
     "@mikro-orm/cli": "^4.3.0",
     "@mikro-orm/core": "^4.3.0",
     "@mikro-orm/postgresql": "^4.3.0",
-    "apollo-link-persisted-queries": "^0.2.2",
     "apollo-server-express": "^2.16.1",
     "argon2": "^0.26.2",
     "connect-redis": "^5.0.0",
@@ -43,8 +44,11 @@
     "express": "^4.17.1",
     "express-session": "^1.17.1",
     "graphql": "^15.3.0",
+    "graphql-rate-limit": "^2.0.1",
     "graphql-upload": "^11.0.0",
     "ioredis": "^4.19.2",
+    "lodash": "^4.17.20",
+    "node-fetch": "^2.6.1",
     "nodemailer": "^6.4.11",
     "pg": "^8.3.0",
     "redis": "^3.0.2",

@@ -2,6 +2,50 @@ import { Entity, SerializedPrimaryKey, Property, PrimaryKey } from "@mikro-orm/c
 import { Field, Int, ObjectType } from "type-graphql";
 
 @ObjectType()
+class Owner {
+	@Field(() => String, { nullable: true })
+	id: string
+	@Field(() => Boolean, { nullable: true })
+	verified: boolean;
+	@Field(() => String, { nullable: true })
+	avatar: string;
+	@Field(() => String, { nullable: true })
+	username: string
+	// @Field(() => Boolean, { nullable: true })
+	// reported: boolean;
+	// @Field(() => Boolean, { nullable: true })
+	// pending: boolean;
+	// @Field(() => Boolean, { nullable: true })
+	// restricted: boolean;
+}
+
+interface OwnerType {
+	id: string
+	verified: boolean;
+	avatar: string;
+	username: string
+	// reported: boolean;
+	// pending: boolean;
+	// restricted: boolean;
+}
+
+@ObjectType()
+class Subs {
+	@Field(() => String, { nullable: true })
+	id: string;
+	@Field(() => Owner, { nullable: true })
+	owner: OwnerType;
+	@Field(() => String, { nullable: true })
+	content: string;
+	@Field(() => String, { nullable: true })
+	likes: string[];
+	@Field(() => String, { nullable: true })
+	shares: string[];
+	@Field(() => String, { nullable: true })
+	createdAt: string;
+}
+
+@ObjectType()
 @Entity()
 export class Post {
 	@Field(() => String)
@@ -16,14 +60,21 @@ export class Post {
 	@Property({ type: 'text' })
 	content!: string;
 
-	// @Field(() => Array)
-	// @Property({ type: 'text' })
-	// attachments!: string[];
+	@Field(() => String)
+	@Property({ type: 'text', default: "[]" })
+	media!: string[];
 
-	// TODO: make this its own interface with data like username etc. -> Shares
-	// @Field()
-	// @Property({ type: 'text' })
-	// shares!: string[]; 
+	@Field(() => String)
+	@Property({ type: 'text', default: "[]" })
+	likes!: string[];
+
+	@Field(() => String)
+	@Property({ type: 'text', default: "[]" })
+	shares!: string[];
+
+	@Field(() => [Subs])
+	@Property({ type: 'json', default: "[{}]", nullable: true })
+	subs!: [object];
 
 	@Field(() => String)
 	@Property({ type: 'date' })
@@ -32,8 +83,4 @@ export class Post {
 	@Field(() => String)
 	@Property({ type: 'date', onUpdate: () => new Date() })
 	updatedAt = new Date();
-
-	@Field(() => String)
-	@Property({ type: 'text' })
-	type!: string;
 }

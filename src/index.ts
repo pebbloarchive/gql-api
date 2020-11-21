@@ -39,10 +39,7 @@ const main = async () => {
         })
     )
 
-<<<<<<< HEAD
 
-=======
->>>>>>> e67e749e3827cb5eaed30aced386767aa0ae260d
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
             emitSchemaFile: true,
@@ -51,7 +48,6 @@ const main = async () => {
         }),
         // playground: false,
         debug: false,
-<<<<<<< HEAD
         context: ({ req, res }) => ({ em: orm.em, req, res, redis }),
         formatError: (error: ApolloError) => {
             if(error.originalError instanceof ApolloError) {
@@ -60,9 +56,6 @@ const main = async () => {
             console.log(error);
             return new ApolloError('Internal server error', 'INTERNAL_SERVER_ERROR');
         }
-=======
-        context: ({ req, res }) => ({ em: orm.em, req, res, redis })
->>>>>>> e67e749e3827cb5eaed30aced386767aa0ae260d
     });
 
     apolloServer.applyMiddleware({ app, path: '/api/query' });

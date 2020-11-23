@@ -16,18 +16,6 @@ class FieldError {
 }
 
 @ObjectType()
-class FieldResponse {
-    @Field() message!: string;
-    @Field() code!: string;
-}
-
-@ObjectType()
-class SuccessResponse {
-    @Field(() => [FieldResponse], { nullable: true }) success?: FieldResponse[];
-    @Field(() => User,  { nullable: true }) user?: User;
-}
-
-@ObjectType()
 class UserResponse {
     @Field(() => [FieldError], { nullable: true }) errors?: FieldError[];
     @Field(() => User, { nullable: true }) user?: User;
@@ -45,6 +33,83 @@ export class UserResolver {
 
         const user = await em.findOne(User, { id: req.session.userId });
         return user;
+    }
+
+    @UseMiddleware(isAuthed)
+    @Mutation(() => UserResponse)
+    async followUser(
+        @Ctx() { req, em }: MyContext,
+        @Arg("id") id: string
+    ): Promise<UserResponse> {
+        const user = await em.findOne(User, { id });
+        const self = await em.findOne(User, { id: req.session.userId });
+
+        if(!user) return {
+            errors: [
+                {
+                   field: "user",
+                    message: "We were unable to find that user."
+                }
+            ]
+        }
+
+        if(req.session.userId === user.id)  return {
+            errors: [
+                {
+                   field: "user",
+                    message: "You are unable to follow yourself."
+                }
+            ]
+        }
+
+        if(user.following.includes(req.session.userId)) return {
+            errors: [
+                {
+                   field: "user",
+                    message: "You are already following that user."
+                }
+            ]
+        }
+
+        user.following.push(req.session.userId);
+
+        await em.persistAndFlush(user);
+
+        return { user };
+    }
+
+    @UseMiddleware(isAuthed)
+    @Mutation(() => UserResponse)
+    async unfollowUser(
+        @Ctx() { req, em }: MyContext,
+        @Arg("id") id: string
+    ): Promise<UserResponse> {
+        const user = await em.findOne(User, { id });
+
+        if(!user) return {
+            errors: [
+                {
+                   field: "user",
+                    message: "We were unable to find that user."
+                }
+            ]
+        }
+
+        if(req.session.userId === user.id)  return {
+            errors: [
+                {
+                   field: "user",
+                    message: "You are unable to follow yourself, so you can't unfollow yourself."
+                }
+            ]
+        }
+
+        // @ts-ignore
+        user.following.pop(req.session.userId);
+
+        em.persistAndFlush(user);
+
+        return { user };
     }
 
     @UseMiddleware(isAuthed)
@@ -111,6 +176,7 @@ export class UserResolver {
         return { user };
     }
 
+    @UseMiddleware(isAuthed)
     @Mutation(() => Boolean)
     async forgotPassword(
         @Arg("email") email: string,
@@ -157,7 +223,8 @@ export class UserResolver {
             id: uuid.generate(), 
             email: options.email, 
             username: options.username, 
-            password: hashed
+            password: hashed,
+            following: []
          });
         try {
             await em.persistAndFlush(user);

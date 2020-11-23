@@ -12,6 +12,7 @@ import session from 'express-session';
 import connectRedis from 'connect-redis';
 import { MyContext } from './types';
 import { GraphQLError } from 'graphql';
+import "dotenv-safe/config";
 
 const app = express();
 

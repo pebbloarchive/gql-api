@@ -18,10 +18,12 @@ type Mutation {
   createPost(content: String!): Post!
   deletePost(id: String!): Boolean!
   deleteSub(id: String!, subid: String!): PostResponse!
+  followUser(id: String!): UserResponse!
   forgotPassword(email: String!): Boolean!
   login(password: String!, usernameOrEmail: String!): UserResponse!
   logout: Boolean!
   register(options: UsernamePasswordInput!): UserResponse!
+  unfollowUser(id: String!): UserResponse!
   updateAccount(description: String, email: String, location: String, name: String, private: Boolean, username: String): UserResponse!
   updatePost(content: String, id: String!): PostResponse
 }
@@ -67,15 +69,17 @@ type Subs {
 }
 
 type User {
-  blocked: String!
+  blocked: [UserType!]!
   createdAt: String!
   description: String!
   email: String!
-  followers: String!
-  following: String!
+  followers: [UserType!]!
+  following: [String!]!
   id: String!
   location: String!
   name: String!
+  permissions: [String!]!
+  posts: [String!]!
   private: Boolean!
   totpSecret: String!
   updatedAt: String!
@@ -92,4 +96,12 @@ input UsernamePasswordInput {
 type UserResponse {
   errors: [FieldError!]
   user: User
+}
+
+type UserType {
+  avatar: String
+  createdAt: String
+  id: String
+  username: String
+  verified: Boolean
 }

@@ -3,13 +3,12 @@ export const EMAIL_REGEX = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/
 export const USERNAME_REGEX = /^(?=.{3,20}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$/;
 export const PASSWORD_REGEX = /^.*(?=.{8,})(?=.*\d)((?=.*[a-z]){1})((?=.*[A-Z]){1}).*$/;
 export const BLACKLISTED_USERNAMES = /(pebblo|create|signup|register|login|create|home|404|501|help|support|settings|account)/;
-export const SPOTIFY_URL = 'https://accounts.spotify.com/api/token';
-export const SPOTIFY_API = 'https://api.spotify.com/v1/me';
-export const SPOTIFY_REDIRECT = 'http://localhost:3000/1.0/auth/spotify/callback';
-export const RANDOM_STRING = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+export const IS_PROD = process.env.NODE_ENV === "production";
+export const IS_DEV = !IS_PROD;
+export const COOKIE_NAME = 'qid';
+export const COOKIE_SECRET = 'replace.before.prod.pebblo.secret';
 
 // MESSAGES
-
 export const COMMON_ERROR = 'It seems something went wrong, please try again.';
 export const INVALID_PASSWORD = 'Unable to login, an invalid password was given.';
 export const INVALID_INFO = 'Missing required information for request.';

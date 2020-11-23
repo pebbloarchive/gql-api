@@ -1,11 +1,18 @@
-import { Entity, Enum, PrimaryKey, Property } from "@mikro-orm/core";
+import { ArrayType, Cascade, Collection, Entity, Enum, ManyToOne, OneToMany, PrimaryKey, Property } from "@mikro-orm/core";
 import { Field, ObjectType } from "type-graphql";
 
-export enum Permissions {
-    USER = 10,
-    SUPPORT = 20,
-    MODERATOR = 50,
-    ADMIN = 100
+@ObjectType()
+class UserType {
+    @Field(() => String, { nullable: true })
+	id: string;
+    @Field(() => String, { nullable: true })
+	username: string;
+    @Field(() => String, { nullable: true })
+	avatar: string;
+    @Field(() => Boolean, { nullable: true })
+    verified: boolean;
+	@Field(() => String, { nullable: true })
+	createdAt: string;    
 }
 
 @ObjectType()
@@ -26,6 +33,10 @@ export class User {
     @Field()
     @Property({ type: 'text', default: "''" })
     name!: string;
+
+    // @Field()
+    // @Property({ type: 'text', default: "''" })
+    // avatar!: string;
 
     @Field()
     @Property({ type: 'text', unique: true })
@@ -54,22 +65,28 @@ export class User {
     @Property({ type: 'boolean', default: false })
     verified: boolean;
 
-    @Field(() => String)
+    @Field(() => [UserType])
 	@Property({ type: 'text', default: "[]" })
     blocked!: string[];
     
-    @Field(() => String)
+    @Field(() => [UserType])
 	@Property({ type: 'text', default: "[]" })
-    following!: string[];
-    
-    @Field(() => String)
-	@Property({ type: 'text', default: "[]" })
-	followers!: string[];
+    followers!: string[];
 
-    // @Enum()
-    // @Field()
-    // @Property({ type: 'boolean', default: Permissions.USER })
-    // staff!: Permissions;
+    @Field(() => [String])
+	@Property({ type: ArrayType })
+    following!: string[];
+
+    // @ManyToOne(() => Following, { cascade: [Cascade.ALL] })
+    // following = new Collection<Following>(this);
+
+    @Field(() => [String])
+    @Property({ type: 'text', default: ["USER"] })
+    permissions!: string[];
+
+    @Field(() => [String])
+    @Property({ type: 'text', default: "[]", nullable: true })
+    posts!: string[];
 
     @Property({ type: 'boolean', default: false })
     suspended: boolean;

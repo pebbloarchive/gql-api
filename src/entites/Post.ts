@@ -1,4 +1,4 @@
-import { Entity, SerializedPrimaryKey, Property, PrimaryKey } from "@mikro-orm/core";
+import { Entity, SerializedPrimaryKey, Property, PrimaryKey, ArrayType } from "@mikro-orm/core";
 import { Field, Int, ObjectType } from "type-graphql";
 
 @ObjectType()
@@ -60,16 +60,16 @@ export class Post {
 	@Property({ type: 'text' })
 	content!: string;
 
-	@Field(() => String)
-	@Property({ type: 'text', default: "[]" })
+	@Field(() => [String])
+	@Property({ type: ArrayType, default: "[]" })
 	media!: string[];
 
-	@Field(() => String)
-	@Property({ type: 'text', default: "[]" })
+	@Field(() => [String])
+	@Property({ type: ArrayType, default: "[]" })
 	likes!: string[];
 
-	@Field(() => String)
-	@Property({ type: 'text', default: "[]" })
+	@Field(() => [String])
+	@Property({ type: ArrayType, default: "[]" })
 	shares!: string[];
 
 	@Field(() => [Subs])

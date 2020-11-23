@@ -2,20 +2,6 @@ import { ArrayType, Cascade, Collection, Entity, Enum, ManyToOne, OneToMany, Pri
 import { Field, ObjectType } from "type-graphql";
 
 @ObjectType()
-class UserType {
-    @Field(() => String, { nullable: true })
-	id: string;
-    @Field(() => String, { nullable: true })
-	username: string;
-    @Field(() => String, { nullable: true })
-	avatar: string;
-    @Field(() => Boolean, { nullable: true })
-    verified: boolean;
-	@Field(() => String, { nullable: true })
-	createdAt: string;    
-}
-
-@ObjectType()
 @Entity()
 export class User {
     @Field()
@@ -65,12 +51,12 @@ export class User {
     @Property({ type: 'boolean', default: false })
     verified: boolean;
 
-    @Field(() => [UserType])
-	@Property({ type: 'text', default: "[]" })
+    @Field(() => [String])
+	@Property({ type: ArrayType })
     blocked!: string[];
     
-    @Field(() => [UserType])
-	@Property({ type: 'text', default: "[]" })
+    @Field(() => [String])
+	@Property({ type: ArrayType })
     followers!: string[];
 
     @Field(() => [String])
@@ -81,7 +67,7 @@ export class User {
     // following = new Collection<Following>(this);
 
     @Field(() => [String])
-    @Property({ type: 'text', default: ["USER"] })
+    @Property({ type: ArrayType, default: ["USER"] })
     permissions!: string[];
 
     @Field(() => [String])

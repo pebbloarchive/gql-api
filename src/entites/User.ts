@@ -20,9 +20,9 @@ export class User {
     @Property({ type: 'text', default: "''" })
     name!: string;
 
-    // @Field()
-    // @Property({ type: 'text', default: "''" })
-    // avatar!: string;
+    @Field()
+    @Property({ type: 'text', default: "''" })
+    avatar!: string;
 
     @Field()
     @Property({ type: 'text', unique: true })
@@ -53,15 +53,15 @@ export class User {
 
     @Field(() => [String])
 	@Property({ type: ArrayType })
-    blocked!: string[];
+    blocked = [];
     
     @Field(() => [String])
 	@Property({ type: ArrayType })
-    followers!: string[];
+    followers = [];
 
     @Field(() => [String])
 	@Property({ type: ArrayType })
-    following!: string[];
+    following = []
 
     // @ManyToOne(() => Following, { cascade: [Cascade.ALL] })
     // following = new Collection<Following>(this);
@@ -80,4 +80,8 @@ export class User {
     @Field()
     @Property({ type: 'text', default: "''" })
     totpSecret: string;
+
+    @Field()
+    @Property({ type: 'boolean', default: false })
+    totpEnabled: boolean;
 }

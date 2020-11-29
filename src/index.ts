@@ -10,9 +10,9 @@ import _redis from 'redis';
 import Redis from 'ioredis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
-import { MyContext } from './types';
-import { GraphQLError } from 'graphql';
 import "dotenv-safe/config";
+import { IS_PROD } from './constants';
+import cors from 'cors';
 
 const app = express();
 
@@ -24,6 +24,13 @@ const main = async () => {
     const redisClient = _redis.createClient();
     const redis = new Redis();
 
+    app.use(cors({
+        credentials: true,
+        origin: 'http://localhost:3000'
+    }));
+    
+    console.log('yee')
+
     app.use(
         session({
             name: 'qid',
@@ -31,7 +38,7 @@ const main = async () => {
             cookie: {
                 maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
                 httpOnly: true,
-                secure:  false,
+                secure:  IS_PROD,
                 sameSite: 'lax'
             },
             saveUninitialized: false,
@@ -39,7 +46,6 @@ const main = async () => {
             resave: false
         })
     )
-
 
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
@@ -59,7 +65,7 @@ const main = async () => {
         }
     });
 
-    apolloServer.applyMiddleware({ app, path: '/api/query' });
+    apolloServer.applyMiddleware({ app, path: '/api/query', cors: false });
 
     app.listen(4000, () => console.log('Server started on port 4000'));
 }

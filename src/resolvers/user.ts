@@ -8,6 +8,8 @@ import { validateRegister } from "../utils/validateRegister";
 import * as consts from '../constants';
 import { isAuthed } from "../middleware/isAuthed";
 import { snakeCase } from "lodash";
+import { ApolloError } from "apollo-server-express";
+import { isStaff } from "../middleware/isStaff";
 
 @ObjectType()
 class FieldError {
@@ -35,6 +37,23 @@ export class UserResolver {
         return user;
     }
 
+    @Query(() => UserResponse)
+    async user (
+        @Arg('username') username: string,
+        @Ctx() { req, em }: MyContext
+    ): Promise<UserResponse> {
+        const user = await em.findOne(User, { username });
+        if(!user) return {
+            errors: [
+                {
+                    field: "user",
+                    message: "This user cannot be found"
+                }
+            ]
+        }
+        return { user };
+    }
+
     @UseMiddleware(isAuthed)
     @Mutation(() => UserResponse)
     async followUser(
@@ -47,8 +66,8 @@ export class UserResolver {
         if(!user) return {
             errors: [
                 {
-                   field: "user",
-                    message: "We were unable to find that user."
+                    field: "user",
+                    message: "This user cannot be found."
                 }
             ]
         }
@@ -57,7 +76,7 @@ export class UserResolver {
             errors: [
                 {
                    field: "user",
-                    message: "You are unable to follow yourself."
+                    message: "You cannot follow yourself."
                 }
             ]
         }
@@ -90,7 +109,7 @@ export class UserResolver {
             errors: [
                 {
                    field: "user",
-                    message: "We were unable to find that user."
+                    message: "This user cannot be found."
                 }
             ]
         }
@@ -99,7 +118,7 @@ export class UserResolver {
             errors: [
                 {
                    field: "user",
-                    message: "You are unable to follow yourself, so you can't unfollow yourself."
+                    message: "You cannot follow or unfollow yourself, don't be silly! 🐒🍌"
                 }
             ]
         }
@@ -121,6 +140,7 @@ export class UserResolver {
         @Arg('email', { nullable: true }) email?: string,
         @Arg('location', { nullable: true }) location?: string,
         @Arg('description', { nullable: true }) description?: string,
+        @Arg('avatar', { nullable: true }) avatar?: string,
         @Arg('private', { nullable: true }) isPrivate?: boolean,
     ): Promise<UserResponse> {
         const user = await em.findOne(User, { id: req.session.userId });
@@ -130,7 +150,7 @@ export class UserResolver {
             return {
                 errors: [
                     {
-                       field: "username",
+                        field: "username",
                         message: "Sorry, that username is already in use."
                     }
                 ]
@@ -141,7 +161,7 @@ export class UserResolver {
             return {
                 errors: [
                     {
-                       field: "email",
+                        field: "email",
                         message: "Sorry, that email is already in use."
                     }
                 ]
@@ -171,7 +191,54 @@ export class UserResolver {
         if(description) {
             user.description = description;
         }
+
+        if(avatar) {
+            user.avatar = avatar;
+        }
             
+        await em.persistAndFlush(user);
+        return { user };
+    }
+
+    @UseMiddleware(isStaff)
+    @Mutation(() => UserResponse)
+    async updateUser(
+        @Ctx() { req, em }: MyContext,
+        @Arg('username', { nullable: true }) username?: string,
+        @Arg('name', { nullable: true }) name?: string,
+        @Arg('email', { nullable: true }) email?: string,
+        @Arg('location', { nullable: true }) location?: string,
+        @Arg('description', { nullable: true }) description?: string,
+        @Arg('avatar', { nullable: true }) avatar?: string,
+        @Arg('private', { nullable: true }) isPrivate?: boolean,
+        @Arg('verified', { nullable: true }) verified?: boolean
+    ): Promise<UserResponse> {
+        const user = await em.findOne(User, { username });
+
+        if(name) {
+            user.name = name;
+        }
+
+        if(location) {
+            user.location = location;
+        }
+
+        if(isPrivate) {
+            user.private = isPrivate;
+        }
+
+        if(description) {
+            user.description = description;
+        }
+
+        if(avatar) {
+            user.avatar = avatar;
+        }
+
+        if(verified) {
+            user.verified = verified;
+        }
+
         await em.persistAndFlush(user);
         return { user };
     }
@@ -223,8 +290,7 @@ export class UserResolver {
             id: uuid.generate(), 
             email: options.email, 
             username: options.username, 
-            password: hashed,
-            following: []
+            password: hashed
          });
         try {
             await em.persistAndFlush(user);
@@ -259,7 +325,7 @@ export class UserResolver {
                 errors: [
                     {
                         field: 'usernameOrEmail',
-                        message: 'Sorry, it seems that username or email couldn\'t be found.' 
+                        message: 'Sorry, that username or email couldn\'t be found. Try again with a different username or email.' 
                     }
                 ]
             }

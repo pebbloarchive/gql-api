@@ -7,4 +7,5 @@ export type MyContext = {
     req: Request & { session: { userId: string } };
     res: Response;
     redis: Redis;
+    // postLoader: ReturnType<typeof initPostLoader>;
 }

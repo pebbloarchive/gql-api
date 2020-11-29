@@ -6,5 +6,6 @@ declare namespace NodeJS {
       SESSION_SECRET: string;
       CORS_ORIGIN: string;
       NODE_ENV: string;
+      SENTRY_DSN: string;
     }
   }

@@ -1,4 +1,4 @@
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver, UseMiddleware } from "type-graphql";
+import { Arg, Ctx, Field, InputType, Int, Mutation, ObjectType, Query, Resolver, UseMiddleware } from "type-graphql";
 import { Post } from "../entites/Post";
 import { MyContext } from "../types";
 import uuid from 'short-uuid';
@@ -8,6 +8,14 @@ import { ApolloError } from "apollo-server-express";
 import { User } from "../entites/user";
 
 // TODO: add the ability to edit posts and subs.
+
+@ObjectType()
+class PaginatedPosts {
+    @Field(() => [Post])
+    posts: Post[];
+    @Field(() => Boolean)
+    hasMore: boolean;
+}
 
 interface OwnerType {
     id: string
@@ -54,11 +62,43 @@ class SharePostInput {
 export class PostResolver {
     @UseMiddleware(isAuthed)
     @Query(() => [Post])
-    posts(
+    posts2(
         @Ctx() { req, em }: MyContext
     ): Promise<Post[]> {
         return em.find(Post, { author: req.session.userId });
     }
+    @Query(() => PaginatedPosts)
+    async posts(
+        @Arg("limit", () => Int) limit: number,
+        @Arg("cursor", () => String, { nullable: true }) cursor: string | null,
+        @Ctx() { em, req }: MyContext
+    ): Promise<PaginatedPosts> {
+        const postLimit = Math.min(50, limit);
+        const plusOne = postLimit + 1;
+
+        const replacements: any[] = [plusOne];
+
+        const qb = em.getConnection()
+
+        if(cursor) replacements.push(new Date(parseInt(cursor)));
+
+        let posts = await qb.execute(`select * from post ${cursor ? `where "created_at" < ${replacements}` : ""} order by "created_at" limit ${replacements}`) 
+
+        // console.log(posts)
+
+        console.log('lol', replacements)
+
+        // if(cursor) {
+        //     replacements.push(new Date(parseInt(cursor)));
+        //     // posts = await qb.execute(`select * from post where "created_at" < ${replacements} order by "created_at" limit ${replacements}`);
+        // }
+
+        return {
+            posts: posts.slice(0, postLimit),
+            hasMore: posts.length === plusOne
+        };
+    }
+    
 
     @Query(() => Post, { nullable: true })
     post(
@@ -82,7 +122,7 @@ export class PostResolver {
             errors: [
                 {
                     field: "post",
-                    message: "That post was unable to be found."
+                    message: "This post cannot be found."
                 }
             ]
         }
@@ -117,7 +157,7 @@ export class PostResolver {
             errors: [
                 {
                     field: "post",
-                    message: "That post was unable to be found."
+                    message: "This post cannot be found."
                 }
             ]
         }
@@ -129,7 +169,7 @@ export class PostResolver {
             errors: [
                 {
                     field: "post",
-                    message: "That sub was unable to be found."
+                    message: "This comment cannot be found."
                 }
             ]
         }
@@ -138,7 +178,7 @@ export class PostResolver {
             errors: [
                 {
                     field: "post",
-                    message: "Unable to delete sub because ID's don't match."
+                    message: "Error deleting this comment, you are not the owner of it."
                 }
             ]
         }

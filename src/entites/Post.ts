@@ -61,16 +61,16 @@ export class Post {
 	content!: string;
 
 	@Field(() => [String])
-	@Property({ type: ArrayType, default: "[]" })
-	media!: string[];
+	@Property({ type: ArrayType })
+	media = [];
 
 	@Field(() => [String])
-	@Property({ type: ArrayType, default: "[]" })
-	likes!: string[];
+	@Property({ type: ArrayType })
+	likes = [];
 
 	@Field(() => [String])
-	@Property({ type: ArrayType, default: "[]" })
-	shares!: string[];
+	@Property({ type: ArrayType })
+	shares = [];
 
 	@Field(() => [Subs])
 	@Property({ type: 'json', default: "[{}]", nullable: true })
@@ -78,9 +78,9 @@ export class Post {
 
 	@Field(() => String)
 	@Property({ type: 'date' })
-	createdAt = new Date();
+	createdAt: Date;
 
 	@Field(() => String)
 	@Property({ type: 'date', onUpdate: () => new Date() })
-	updatedAt = new Date();
+	updatedAt: Date;
 }

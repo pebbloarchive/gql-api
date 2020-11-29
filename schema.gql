@@ -24,8 +24,9 @@ type Mutation {
   logout: Boolean!
   register(options: UsernamePasswordInput!): UserResponse!
   unfollowUser(id: String!): UserResponse!
-  updateAccount(description: String, email: String, location: String, name: String, private: Boolean, username: String): UserResponse!
+  updateAccount(avatar: String, description: String, email: String, location: String, name: String, private: Boolean, username: String): UserResponse!
   updatePost(content: String, id: String!): PostResponse
+  updateUser(avatar: String, description: String, email: String, location: String, name: String, private: Boolean, username: String, verified: Boolean): UserResponse!
 }
 
 type Owner {
@@ -35,14 +36,19 @@ type Owner {
   verified: Boolean
 }
 
+type PaginatedPosts {
+  hasMore: Boolean!
+  posts: [Post!]!
+}
+
 type Post {
   author: String!
   content: String!
   createdAt: String!
   id: String!
-  likes: String!
-  media: String!
-  shares: String!
+  likes: [String!]!
+  media: [String!]!
+  shares: [String!]!
   subs: [Subs!]!
   updatedAt: String!
 }
@@ -55,8 +61,10 @@ type PostResponse {
 type Query {
   me: User
   post(id: String!): Post
-  posts: [Post!]!
+  posts(cursor: String, limit: Int!): PaginatedPosts!
+  posts2: [Post!]!
   register(options: UsernamePasswordInput!): String!
+  user(username: String!): UserResponse!
 }
 
 type Subs {
@@ -69,11 +77,12 @@ type Subs {
 }
 
 type User {
-  blocked: [UserType!]!
+  avatar: String!
+  blocked: [String!]!
   createdAt: String!
   description: String!
   email: String!
-  followers: [UserType!]!
+  followers: [String!]!
   following: [String!]!
   id: String!
   location: String!
@@ -81,6 +90,7 @@ type User {
   permissions: [String!]!
   posts: [String!]!
   private: Boolean!
+  totpEnabled: Boolean!
   totpSecret: String!
   updatedAt: String!
   username: String!
@@ -96,12 +106,4 @@ input UsernamePasswordInput {
 type UserResponse {
   errors: [FieldError!]
   user: User
-}
-
-type UserType {
-  avatar: String
-  createdAt: String
-  id: String
-  username: String
-  verified: Boolean
 }

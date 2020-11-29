@@ -78,9 +78,9 @@ export class Post {
 
 	@Field(() => String)
 	@Property({ type: 'date' })
-	createdAt: Date;
+	created_at: string;
 
 	@Field(() => String)
-	@Property({ type: 'date', onUpdate: () => new Date() })
-	updatedAt: Date;
+	@Property({ type: 'date' })
+	updated_at: string;
 }

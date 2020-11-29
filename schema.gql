@@ -44,13 +44,13 @@ type PaginatedPosts {
 type Post {
   author: String!
   content: String!
-  createdAt: String!
+  created_at: String!
   id: String!
   likes: [String!]!
   media: [String!]!
   shares: [String!]!
   subs: [Subs!]!
-  updatedAt: String!
+  updated_at: String!
 }
 
 type PostResponse {

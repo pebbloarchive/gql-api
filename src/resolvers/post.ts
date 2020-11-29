@@ -6,6 +6,8 @@ import { FileUpload, GraphQLUpload } from "graphql-upload"
 import { isAuthed } from "../middleware/isAuthed";
 import { ApolloError } from "apollo-server-express";
 import { User } from "../entites/user";
+import { parse } from "path";
+import { replace } from "lodash";
 
 // TODO: add the ability to edit posts and subs.
 
@@ -80,18 +82,9 @@ export class PostResolver {
 
         const qb = em.getConnection()
 
-        if(cursor) replacements.push(new Date(parseInt(cursor)));
-
-        let posts = await qb.execute(`select * from post ${cursor ? `where "created_at" < ${replacements}` : ""} order by "created_at" limit ${replacements}`) 
-
-        // console.log(posts)
-
-        console.log('lol', replacements)
-
-        // if(cursor) {
-        //     replacements.push(new Date(parseInt(cursor)));
-        //     // posts = await qb.execute(`select * from post where "created_at" < ${replacements} order by "created_at" limit ${replacements}`);
-        // }
+        if(cursor) replacements.push();
+        
+        let posts = await qb.execute(`select * from post ${cursor ? `where "created_at" < (select to_timestamp(${cursor} / 1000))` : ""} order by "created_at" limit ${replacements[0]}`) 
 
         return {
             posts: posts.slice(0, postLimit),
@@ -196,7 +189,7 @@ export class PostResolver {
         @Arg('content') content: string,
         @Ctx() { em, req }: MyContext
     ): Promise<Post> {
-        const post = em.create(Post, { content, id: uuid.generate(), author: req.session.userId, subs: [] });
+        const post = em.create(Post, { content, id: uuid.generate(), author: req.session.userId, subs: [], created_at: Date.now(), updated_at: Date.now() });
         await em.persistAndFlush(post);
         return post;
     }

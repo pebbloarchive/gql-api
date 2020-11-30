@@ -46,6 +46,20 @@ class Subs {
 }
 
 @ObjectType()
+class Creator {
+	@Field(() => String, { nullable: true })
+	id: string;
+	@Field(() => String, { nullable: true })
+	username: string;
+	@Field(() => String, { nullable: true })
+	name: string;
+	@Field(() => String, { nullable: true })
+	avatar: string;
+	@Field(() => Boolean, { nullable: true })
+	verified: boolean;	
+}
+
+@ObjectType()
 @Entity()
 export class Post {
 	@Field(() => String)
@@ -55,6 +69,10 @@ export class Post {
 	@Field((() => String))
 	@Property({ type: 'text' })
 	author!: string;
+
+	@Field(() => Creator)
+	@Property({ type: 'json', default: "{}", nullable: true })
+	creator!: object;
 
 	@Field(() => String)
 	@Property({ type: 'text' })

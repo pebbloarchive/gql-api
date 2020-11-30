@@ -3,6 +3,14 @@
 # !!!   DO NOT MODIFY THIS FILE BY YOURSELF   !!!
 # -----------------------------------------------
 
+type Creator {
+  avatar: String
+  id: String
+  name: String
+  username: String
+  verified: Boolean
+}
+
 type FieldError {
   field: String!
   message: String!
@@ -47,6 +55,7 @@ type Post {
   author: String!
   content: String!
   created_at: String!
+  creator: Creator!
   id: String!
   likes: [String!]!
   media: [String!]!

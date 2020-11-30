@@ -247,7 +247,17 @@ export class PostResolver {
             ]
         }
 
-        const post = em.create(Post, { content, id: uuid.generate(), author: req.session.userId, subs: [], created_at: Date.now(), updated_at: Date.now() });
+        const user = await em.findOne(User, { id: req.session.userId });
+
+        const creator = {
+            id: req.session.userId,
+            username: user.username,
+            name: user.name,
+            avatar: user.avatar,
+            verified: user.verified
+        }
+
+        const post = em.create(Post, { content, id: uuid.generate(), author: req.session.userId, creator: creator, subs: [], created_at: Date.now(), updated_at: Date.now() });
         await em.persistAndFlush(post);
         return { post };
     }

@@ -55,18 +55,13 @@ class PinPostInput {
     @Field(() => String) id!: string;
 }
 
-@InputType()
-class SharePostInput {
-    @Field(() => String) id!: string;
-}
-
 @Resolver()
 export class PostResolver {
     @Query(() => PaginatedPosts)
     async posts(
         @Arg("limit", () => Int) limit: number,
         @Arg("cursor", () => String, { nullable: true }) cursor: string | null,
-        @Arg("id", () => String) id: string,
+        // @Arg("id", () => String) id: string,
         @Ctx() { em, req }: MyContext
     ): Promise<PaginatedPosts> {
         const postLimit = Math.min(50, limit);
@@ -78,10 +73,10 @@ export class PostResolver {
 
         if(cursor) replacements.push();
         
-        let posts = await qb.execute(`select * from post ${cursor ? `where "created_at" < (select to_timestamp(${cursor} / 1000))` : ""} order by "created_at" limit ${replacements[0]}`) 
+        let posts = await qb.execute(`select * from post ${cursor ? `where "created_at" < (select to_timestamp(${cursor} / 1000))` : ""} order by "created_at" DESC limit ${replacements[0]}`) 
 
         // if(!id) id = req.session.userId
-        posts = (await posts).filter((post: any) => post.author === id)
+        posts = (await posts).filter((post: any) => post.author === req.session.userId)
 
         return {
             posts: posts.slice(0, postLimit),
@@ -95,6 +90,62 @@ export class PostResolver {
         @Ctx() { em }: MyContext
         ): Promise<Post | null> {
         return em.findOne(Post, { id });
+    }
+
+    @Mutation(() => Boolean)
+    @UseMiddleware(isAuthed)
+    async like(
+        @Arg("id", () => String) id: string,
+        @Ctx() { em, req }: MyContext
+    ) {
+        const post = await em.findOne(Post, { id });
+        
+        if(!post) return {
+            errors: [
+                {
+                    field: "post",
+                    message: "This post cannot be found."
+                }
+            ]
+        }
+
+        if(post.likes.includes(req.session.userId)) {
+            const index = post.likes.indexOf(req.session.userId);
+            post.likes.splice(index, 1);
+        } else if(!post.likes.includes(req.session.userId)) {
+            post.likes.push(req.session.userId);
+        }
+
+        await em.persistAndFlush(post);
+        return true;
+    }
+
+    @Mutation(() => Boolean)
+    @UseMiddleware(isAuthed)
+    async share(
+        @Arg("id", () => String) id: string,
+        @Ctx() { em, req }: MyContext
+    ) {
+        const post = await em.findOne(Post, { id });
+        
+        if(!post) return {
+            errors: [
+                {
+                    field: "post",
+                    message: "This post cannot be found."
+                }
+            ]
+        }
+
+        if(post.shares.includes(req.session.userId)) {
+            const index = post.shares.indexOf(req.session.userId);
+            post.shares.splice(index, 1);
+        } else if(!post.shares.includes(req.session.userId)) {
+            post.shares.push(req.session.userId);
+        }
+
+        await em.persistAndFlush(post);
+        return true;
     }
 
     @UseMiddleware(isAuthed)
@@ -120,6 +171,7 @@ export class PostResolver {
             id: uuid.generate(),
             owner: {
                 id: req.session.userId,
+                avatar: user.avatar,
                 verified: user.verified,
                 username: user.username
             },
@@ -180,14 +232,24 @@ export class PostResolver {
     }    
 
     @UseMiddleware(isAuthed)
-    @Mutation(() => Post)
+    @Mutation(() => PostResponse)
     async createPost(
         @Arg('content') content: string,
         @Ctx() { em, req }: MyContext
-    ): Promise<Post> {
+    ): Promise<PostResponse> {
+
+        if(content.length > 5000) return {
+            errors: [
+                {
+                    field: "post",
+                    message: "Your post can not exceed the 5000 character limit."
+                }
+            ]
+        }
+
         const post = em.create(Post, { content, id: uuid.generate(), author: req.session.userId, subs: [], created_at: Date.now(), updated_at: Date.now() });
         await em.persistAndFlush(post);
-        return post;
+        return { post };
     }
 
 
@@ -211,6 +273,14 @@ export class PostResolver {
 
         if(!post) return null;
         if(typeof post !== 'undefined') {
+            if(post.content.length > 5000) return {
+                errors: [
+                    {
+                        field: "post",
+                        message: "Your post can not exceed the 5000 character limit."
+                    }
+                ]
+            }
             post.content = content;
             await em.persistAndFlush(post);
         }
@@ -224,10 +294,7 @@ export class PostResolver {
         @Ctx() { req, em }: MyContext
     ): Promise<boolean> {
         const post = await em.findOne(Post, { id });
-        if(req.session.userId !== post.author) throw new ApolloError(
-            "You're missing permissions to delete this post.",
-            "MISSING_PERMISSIONS"
-        ) 
+        if(req.session.userId !== post.author) return false;
         await em.nativeDelete(Post, { id });
         return true;
     }

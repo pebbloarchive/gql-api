@@ -61,8 +61,7 @@ type PostResponse {
 type Query {
   me: User
   post(id: String!): Post
-  posts(cursor: String, limit: Int!): PaginatedPosts!
-  posts2: [Post!]!
+  posts(cursor: String, id: String!, limit: Int!): PaginatedPosts!
   register(options: UsernamePasswordInput!): String!
   user(username: String!): UserResponse!
 }

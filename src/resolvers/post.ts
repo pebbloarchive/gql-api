@@ -62,17 +62,11 @@ class SharePostInput {
 
 @Resolver()
 export class PostResolver {
-    @UseMiddleware(isAuthed)
-    @Query(() => [Post])
-    posts2(
-        @Ctx() { req, em }: MyContext
-    ): Promise<Post[]> {
-        return em.find(Post, { author: req.session.userId });
-    }
     @Query(() => PaginatedPosts)
     async posts(
         @Arg("limit", () => Int) limit: number,
         @Arg("cursor", () => String, { nullable: true }) cursor: string | null,
+        @Arg("id", () => String) id: string,
         @Ctx() { em, req }: MyContext
     ): Promise<PaginatedPosts> {
         const postLimit = Math.min(50, limit);
@@ -86,12 +80,14 @@ export class PostResolver {
         
         let posts = await qb.execute(`select * from post ${cursor ? `where "created_at" < (select to_timestamp(${cursor} / 1000))` : ""} order by "created_at" limit ${replacements[0]}`) 
 
+        // if(!id) id = req.session.userId
+        posts = (await posts).filter((post: any) => post.author === id)
+
         return {
             posts: posts.slice(0, postLimit),
             hasMore: posts.length === plusOne
         };
-    }
-    
+    }    
 
     @Query(() => Post, { nullable: true })
     post(

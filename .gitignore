@@ -1,8 +1,14 @@
+dist
 node_modules
-build
-package-lock.json
+.env
+.vscode
+.idea
 yarn.lock
+<<<<<<< HEAD
 keep
 .env
 .idea
 .vscode
+=======
+package-lock.json
+>>>>>>> gql

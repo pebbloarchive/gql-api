@@ -1,21 +1,22 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "CommonJS",
+    "module": "commonjs",
+    "target": "es2018",
+    "outDir": "dist",
     "lib": ["ES2015", "ES2016", "ES2017", "ES2018", "ES2019", "ES2020", "ESNext"],
-    "strict": true,
-    "declaration": true,
-    "outDir": "build",
-    "rootDir": "./src",
-    "noImplicitAny": false,
-    "moduleResolution": "node",
-    "types": ["node"],
-    "allowSyntheticDefaultImports": true,
+    "sourceMap": false,
+    "inlineSourceMap": true,
+    "inlineSources": true,
+    "incremental": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+<<<<<<< HEAD
     "resolveJsonModule": true,
+=======
+    "skipLibCheck": true
+>>>>>>> gql
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules"]
+    "include": ["src/**/*"],
+    "exclude": ["node_modules"]
 }

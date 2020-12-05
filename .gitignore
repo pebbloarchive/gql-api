@@ -1,14 +1,12 @@
+#  build files
 dist
 node_modules
-.env
-.vscode
-.idea
-yarn.lock
-<<<<<<< HEAD
-keep
+
+# editors
 .env
 .idea
 .vscode
-=======
+
+# locks after install
 package-lock.json
->>>>>>> gql
+yarn.lock

@@ -1,11 +1,10 @@
 import { Arg, Ctx, Field, InputType, Int, Mutation, ObjectType, Query, Resolver, UseMiddleware } from "type-graphql";
-import { Post } from "../entites/Post";
 import { MyContext } from "../types";
 import uuid from 'short-uuid';
 import { FileUpload, GraphQLUpload } from "graphql-upload"
 import { isAuthed } from "../middleware/isAuthed";
 import { ApolloError } from "apollo-server-express";
-import { User } from "../entites/user";
+import { User, Post } from "../entites";
 import { parse } from "path";
 import { replace } from "lodash";
 

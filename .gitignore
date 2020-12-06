@@ -1,7 +1,12 @@
+#  build files
 dist
 node_modules
+
+# editors
 .env
-.vscode
 .idea
-yarn.lock
+.vscode
+
+# locks after install
 package-lock.json
+yarn.lock

@@ -11,10 +11,11 @@ import _redis from 'redis';
 import Redis from 'ioredis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
-import { COOKIE_NAME, IS_PROD } from './constants';
+import { COOKIE_NAME, COOKIE_SECRET, IS_PROD } from './constants';
 import cors from 'cors';
 import datadog from 'express-opentracing';
 import tracer from 'dd-trace';
+import Logger from './utils/sentryLogger';
 
 const app = express();
 
@@ -28,7 +29,7 @@ const main = async () => {
 
     app.use(cors({
         credentials: true,
-        origin: 'http://localhost:3000'
+        origin: IS_PROD ? 'https://pebblo.org' : 'http://localhost:3000'
     }));
 
     app.use(datadog({ tracer: tracer }));
@@ -44,7 +45,7 @@ const main = async () => {
                 sameSite: 'lax'
             },
             saveUninitialized: false,
-            secret: 'pebbloiscool',
+            secret: COOKIE_SECRET,
             resave: false
         })
     )
@@ -55,19 +56,20 @@ const main = async () => {
             resolvers: [PostResolver, UserResolver],
             validate: false
         }),
+        introspection: IS_PROD ? true : false,
         // playground: false,
-        debug: false,
+        debug: IS_PROD ? false : true,
         context: ({ req, res }) => ({ em: orm.em, req, res, redis }),
         formatError: (error: ApolloError) => {
             if(error.originalError instanceof ApolloError) {
                 return error;
             }
-            console.log(error);
+            IS_PROD ? Logger(error) : console.error(error);
             return new ApolloError('Internal server error', 'INTERNAL_SERVER_ERROR');
         }
     });
 
-    apolloServer.applyMiddleware({ app, path: '/api/graphql', cors: false });
+    apolloServer.applyMiddleware({ app, path: IS_PROD ? '/graphql' : '/api/graphql', cors: false });
 
     app.listen(4000, () => console.log('Server started on port 4000'));
 }

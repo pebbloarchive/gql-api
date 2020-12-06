@@ -11,12 +11,10 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-<<<<<<< HEAD
+    "declaration": true,
     "resolveJsonModule": true,
-=======
-    "skipLibCheck": true
->>>>>>> gql
-  },
+    "skipLibCheck": true,
+    },
     "include": ["src/**/*"],
     "exclude": ["node_modules"]
 }

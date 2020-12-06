@@ -70,9 +70,9 @@ export class User {
     @Property({ type: ArrayType, default: ["USER"] })
     permissions!: string[];
 
-    @Field(() => [String])
-    @Property({ type: 'text', default: "[]", nullable: true })
-    posts!: string[];
+    // @Field(() => [String])
+    // @Property({ type: 'text', default: "[]", nullable: true })
+    // posts!: string[];
 
     @Property({ type: 'boolean', default: false })
     suspended: boolean;

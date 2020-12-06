@@ -4,10 +4,10 @@ export const PASSWORD_REGEX = /^.*(?=.{8,})(?=.*\d)((?=.*[a-z]){1})((?=.*[A-Z]){
 export const BLACKLISTED_USERNAMES = /(pebblo|create|signup|register|login|create|home|404|501|help|support|settings|account)/;
 export const IS_PROD = process.env.NODE_ENV === "production";
 export const IS_DEV = !IS_PROD;
-export const COOKIE_NAME = 'qid';
+export const COOKIE_NAME = 'auth_token';
 export const COOKIE_SECRET = 'replace.before.prod.pebblo.secret';
 
-export const COMMON_ERROR = 'It seems something went wrong, please try again.';
+// MESSAGES
 export const INVALID_PASSWORD = 'Unable to login, an invalid password was given.';
 export const INVALID_INFO = 'Missing required information for request.';
 export const INVALID_USERNAME = 'Your username has to be 2-25 characters long.';

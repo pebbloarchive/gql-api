@@ -98,7 +98,6 @@ type User {
   location: String!
   name: String!
   permissions: [String!]!
-  posts: [String!]!
   private: Boolean!
   totpEnabled: Boolean!
   totpSecret: String!

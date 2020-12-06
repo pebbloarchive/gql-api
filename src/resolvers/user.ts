@@ -1,5 +1,5 @@
 import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver, UseMiddleware } from "type-graphql";
-import { User } from "../entites";
+import { User } from "../entites/user";
 import { MyContext } from "../types";
 import uuid from 'short-uuid';
 import argon2 from "argon2";

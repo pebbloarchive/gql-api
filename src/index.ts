@@ -41,8 +41,9 @@ const main = async () => {
             cookie: {
                 maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
                 httpOnly: true,
-                secure:  IS_PROD,
-                sameSite: 'lax'
+                sameSite: 'lax',
+                secure:  IS_PROD ? true : false,
+                domain: IS_PROD ? '.pebblo.org' : undefined
             },
             saveUninitialized: false,
             secret: COOKIE_SECRET,

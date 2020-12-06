@@ -356,7 +356,7 @@ export class UserResolver {
     ) {    
         return new Promise((resolve) => {
             req.session.destroy((err) => {
-                res.clearCookie('qid');
+                res.clearCookie(consts.COOKIE_NAME);
                 if(err) {
                     resolve(false);
                     return;

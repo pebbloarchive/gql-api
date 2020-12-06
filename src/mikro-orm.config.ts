@@ -1,6 +1,7 @@
 import { MikroORM } from "@mikro-orm/core";
-import { Post } from "./entites/Post";
-import { User } from "./entites/user";
+import { SqlHighlighter } from '@mikro-orm/sql-highlighter';
+import { Post, User } from "./entites";
+import { TsMorphMetadataProvider } from '@mikro-orm/reflection';
 import path from "path";
 
 export default {
@@ -13,5 +14,7 @@ export default {
         type: 'postgresql',
         user: 'postgres',
         password: 'djshawn1',
+	metadataProvider: TsMorphMetadataProvider,
+        highlighter: new SqlHighlighter(),
         debug: true
 } as Parameters<typeof MikroORM.init>[0];

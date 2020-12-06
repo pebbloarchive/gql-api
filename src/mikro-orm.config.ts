@@ -9,7 +9,8 @@ export default {
         migrations: {
                 path: path.join(__dirname, './migrations'),
                 pattern: /^[\w-]+\d+\.[tj]s$/,
-        }, 
+        },
+        type: 'postgresql',
         entities: [Post, User],
         clientUrl: process.env.DATABASE_URL,
 	metadataProvider: TsMorphMetadataProvider,

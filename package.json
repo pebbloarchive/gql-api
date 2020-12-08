@@ -61,6 +61,7 @@
     "node-fetch": "^2.6.1",
     "nodemailer": "^6.4.11",
     "pg": "^8.3.0",
+    "random-token": "^0.0.8",
     "redis": "^3.0.2",
     "reflect-metadata": "^0.1.13",
     "short-uuid": "^4.1.0",
@@ -71,6 +72,9 @@
   },
   "mikro-orm": {
     "useTsNode": true,
-    "configPaths": ["./src/mikro-orm.config.ts", "./dist/mikro-orm.config.js"]
+    "configPaths": [
+      "./src/mikro-orm.config.ts",
+      "./dist/mikro-orm.config.js"
+    ]
   }
 }

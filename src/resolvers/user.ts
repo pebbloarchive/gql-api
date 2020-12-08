@@ -17,6 +17,7 @@ import { validateRegister } from "../utils/validateRegister";
 import * as consts from "../constants";
 import { isAuthed } from "../middleware/isAuthed";
 import { isStaff } from "../middleware/isStaff";
+import randToken from "random-token";
 
 @ObjectType()
 class FieldError {
@@ -93,7 +94,7 @@ export class UserResolver {
         ],
       };
 
-    if (user.following.includes(req.session.userId))
+    if (user.followers.includes(req.session.userId))
       return {
         errors: [
           {
@@ -420,11 +421,7 @@ export class UserResolver {
     }
 
     req.session.userId = user.id;
-    user.websocketToken = Math.random()
-      .toString(36)
-      .replace(/[^a-z]+/g, "")
-      .substr(0, 5);
-
+    user.websocketToken = randToken(30);
     await em.persistAndFlush(user);
 
     return { user };

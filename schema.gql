@@ -70,6 +70,7 @@ type PostResponse {
 }
 
 type Query {
+  followersPost: [Post!]
   me: User
   post(id: String!): Post
   posts(cursor: String, limit: Int!): PaginatedPosts!
@@ -104,6 +105,7 @@ type User {
   updatedAt: String!
   username: String!
   verified: Boolean!
+  websocketToken: String!
 }
 
 input UsernamePasswordInput {

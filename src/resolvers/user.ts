@@ -48,6 +48,10 @@ export class UserResolver {
     @Ctx() { req, em }: MyContext
   ): Promise<UserResponse | null> {
     const user = await em.findOne(User, { username });
+    if (user.email) {
+      user.email = "";
+      return { user };
+    }
     if (!user)
       return {
         errors: [
@@ -57,7 +61,6 @@ export class UserResolver {
           },
         ],
       };
-    if (user.email) return null;
     return { user };
   }
 
@@ -100,7 +103,8 @@ export class UserResolver {
         ],
       };
 
-    user.following.push(req.session.userId);
+    user.followers.push(req.session.userId);
+    self.following.push(id);
 
     await em.persistAndFlush(user);
 
@@ -176,6 +180,59 @@ export class UserResolver {
           {
             field: "email",
             message: "Sorry, that email is already in use.",
+          },
+        ],
+      };
+    }
+
+    if (username && !username.match(consts.USERNAME_REGEX)) {
+      return {
+        errors: [
+          {
+            field: "username",
+            message: consts.INVALID_USERNAME,
+          },
+        ],
+      };
+    }
+
+    if (email && !email.match(consts.EMAIL_REGEX)) {
+      return {
+        errors: [
+          {
+            field: "email",
+            message: consts.INVALID_EMAIL,
+          },
+        ],
+      };
+    }
+
+    if (name && name.length <= 1) {
+      return {
+        errors: [
+          {
+            field: "name",
+            message: "Your name cannot be shorter than 1 character.",
+          },
+        ],
+      };
+    } else if (name && name.length > 56) {
+      return {
+        errors: [
+          {
+            field: "name",
+            message: "Your name cannot be longer than 56 characters.",
+          },
+        ],
+      };
+    }
+
+    if (description && description.length > 500) {
+      return {
+        errors: [
+          {
+            field: "description",
+            message: "Description cannot be longer than 500 characters.",
           },
         ],
       };
@@ -331,11 +388,11 @@ export class UserResolver {
     @Arg("password") password: string,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    // @ts-ignore
     const user = await em.findOne(
       User,
       usernameOrEmail.includes("@")
-        ? { "lower(email)": usernameOrEmail.toLowerCase() }
+        ? // @ts-ignore
+          { "lower(email)": usernameOrEmail.toLowerCase() }
         : { "lower(username)": usernameOrEmail.toLowerCase() }
     );
     if (!user) {
@@ -363,6 +420,12 @@ export class UserResolver {
     }
 
     req.session.userId = user.id;
+    user.websocketToken = Math.random()
+      .toString(36)
+      .replace(/[^a-z]+/g, "")
+      .substr(0, 5);
+
+    await em.persistAndFlush(user);
 
     return { user };
   }

@@ -47,7 +47,6 @@ export class User {
 
   @Field()
   @Property({ type: "text", default: "''" })
-  @Property({ type: "text", default: "''" })
   location: string;
 
   @Field()
@@ -94,7 +93,7 @@ export class User {
 
   @Field()
   @Property({ type: "text", default: "''" })
-  websocketToken?: string;
+  websocketToken!: string;
 
   @Field()
   @Property({ type: "text", default: "''" })

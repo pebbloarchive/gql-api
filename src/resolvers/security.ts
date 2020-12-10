@@ -12,4 +12,4 @@ import { User } from "../entites";
 import { MyContext } from "../types";
 import * as consts from "../constants";
 import { isAuthed } from "../middleware/isAuthed";
-import Result from "./types";
+import Result from "./types/Result";

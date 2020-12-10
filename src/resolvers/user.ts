@@ -141,8 +141,7 @@ export class UserResolver {
         ],
       };
 
-    // @ts-ignore
-    user.following.pop(req.session.userId);
+    user.following.filter((x) => x.id !== req.session.userId);
 
     em.persistAndFlush(user);
 
@@ -362,6 +361,7 @@ export class UserResolver {
       email: options.email,
       username: options.username,
       password: hashed,
+      websocketToken: "",
     });
     try {
       await em.persistAndFlush(user);

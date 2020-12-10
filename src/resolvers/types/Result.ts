@@ -1,0 +1,14 @@
+import { ObjectType, Field } from "type-graphql";
+
+@ObjectType({
+  description:
+    "Provides a boolean to determine the action was successful or not",
+})
+export default class Result {
+  @Field()
+  ok: boolean;
+
+  constructor(ok: boolean = true) {
+    this.ok = ok;
+  }
+}

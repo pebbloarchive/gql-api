@@ -12,9 +12,14 @@ export default {
   },
   type: "postgresql",
   entities: [Post, User],
-  clientUrl: IS_DEV
+  /*clientUrl: IS_DEV
     ? "postgresql://postgres:djshawn1@localhost:5432/pebblo"
-    : process.env.DATABASE_URL,
+    : process.env.DATABASE_URL,*/
+  host: "localhost",
+  port: 5432,
+  user: "postgres",
+  password: "djshawn1",
+  dbName: "pebblo",
   highlighter: new SqlHighlighter(),
   debug: IS_DEV ? true : false,
 } as Parameters<typeof MikroORM.init>[0];

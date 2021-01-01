@@ -16,7 +16,7 @@ export const INVALID_USERNAME = "Your username has to be 2-25 characters long.";
 export const UNSUPPORTED_USERNAME = "Usernames can't include unicode.";
 export const INVALID_EMAIL = "An invalid email was provided.";
 export const WEAK_PASSWORD =
-  "Your password is too weak, please choose a stronger password.";
+  "Your password is too weak, please choose a stronger password. For example SuperManIsAwesome69!";
 export const INVALID_CONF_PASSWORD = "Your passwords do not match each other.";
 export const SAME_PASSWORD_AS_BEFORE =
   "You can't use a previously used password.";

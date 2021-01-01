@@ -421,7 +421,7 @@ export class UserResolver {
     }
 
     req.session.userId = user.id;
-    user.websocketToken = randToken(30);
+    user.websocketToken = randToken(30) + Date.now();
     await em.persistAndFlush(user);
 
     return { user };

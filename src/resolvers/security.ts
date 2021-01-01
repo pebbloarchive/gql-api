@@ -13,3 +13,6 @@ import { MyContext } from "../types";
 import * as consts from "../constants";
 import { isAuthed } from "../middleware/isAuthed";
 import Result from "./types/Result";
+
+@Resolver()
+export class SecurityResolver {}
